@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.mangiaebasta.viewmodels.ProfileEditUiState
 import com.example.mangiaebasta.viewmodels.ProfileViewModel
+import com.example.mangiaebasta.Screen
 
 @Composable
 fun ProfileEditScreen(
@@ -151,7 +152,7 @@ fun ProfileEditScreen(
                                     menuName = menuName.ifBlank { null }
                                 )
                             )
-                            navController.navigate("profileInfoScreen") {
+                            navController.navigate(Screen.ProfileInfo.route) {
                                 popUpTo("profileEditScreen") { inclusive = true }
                             }
                         },
