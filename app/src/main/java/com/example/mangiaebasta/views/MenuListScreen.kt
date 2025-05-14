@@ -1,9 +1,7 @@
 package com.example.mangiaebasta.views
 
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,11 +10,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import com.example.mangiaebasta.models.MenuModel
+import com.example.mangiaebasta.viewmodels.MenuListItemUiState
 import com.example.mangiaebasta.viewmodels.MenuViewModel
 
 @Composable
@@ -24,13 +23,21 @@ fun MenuListScreen(
     menuViewModel: MenuViewModel,
     onMenuSelected: (Int) -> Unit
 ) {
-    val menus by menuViewModel.menus.collectAsState()
+    val menus by menuViewModel.menusUi.collectAsState()
+    val isLoading by menuViewModel.isLoading.collectAsState()
+
+    if (isLoading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp)
+        contentPadding = PaddingValues(8.dp)
     ) {
         items(menus, key = { it.mid }) { menu ->
             MenuCard(menu, onMenuSelected)
@@ -39,61 +46,46 @@ fun MenuListScreen(
 }
 
 @Composable
-private fun MenuCard(menu: MenuModel, onMenuSelected: (Int) -> Unit) {
-    val imageBitmap = menu.image?.let { raw ->
-        val base64 = raw.substringAfter(",", raw)
-        try {
-            val imageBytes = Base64.decode(base64, Base64.NO_WRAP)
-            val options = BitmapFactory.Options().apply {
-                inPreferredConfig = Bitmap.Config.ARGB_8888
-                inMutable = true
-            }
-            BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size, options)
-                ?.asImageBitmap()
-        } catch (e: Exception) {
-            Log.e("MenuCard", "Errore decodifica immagine: ${e.message}")
-            null
-        }
-    }
+private fun MenuCard(
+    menu: MenuListItemUiState,
+    onMenuSelected: (Int) -> Unit
+) {
+    val imageBitmap = menu.imageBase64
+        ?.let { Base64.decode(it, Base64.NO_WRAP) }
+        ?.let { bytes -> BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
+        ?.asImageBitmap()
 
     Card(
-        elevation = CardDefaults.cardElevation(8.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 4.dp)
             .clickable { onMenuSelected(menu.mid) }
-            .background(MaterialTheme.colorScheme.surface)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-            imageBitmap?.let { bitmap ->
+        Column(Modifier.padding(8.dp)) {
+            if (imageBitmap != null) {
                 Image(
-                    bitmap = bitmap,
+                    bitmap = imageBitmap,
                     contentDescription = menu.name,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
+                        .height(180.dp),
+                    contentScale = ContentScale.Crop
                 )
-                Spacer(Modifier.height(8.dp))
-            } ?: run {
-                Text(
-                    "Immagine non disponibile",
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+            } else {
+                Text("Immagine non disponibile", color = MaterialTheme.colorScheme.error)
             }
-
-            Column(Modifier.padding(16.dp)) {
-                Text(menu.name, style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(4.dp))
-                Text(menu.shortDescription, style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("€${"%.2f".format(menu.price)}", style = MaterialTheme.typography.titleMedium)
-                    Text("${menu.deliveryTime} min", style = MaterialTheme.typography.bodySmall)
-                }
+            Spacer(Modifier.height(8.dp))
+            Text(menu.name, style = MaterialTheme.typography.titleLarge)
+            Text(menu.shortDescription, style = MaterialTheme.typography.bodyMedium)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(menu.priceText, style = MaterialTheme.typography.titleMedium)
+                Text(menu.deliveryTimeText, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
