@@ -1,31 +1,69 @@
 package com.example.mangiaebasta.viewmodels
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.mangiaebasta.models.ProfileModel
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
 class ProfileViewModel : ViewModel() {
-    var firstName    by mutableStateOf("Mario")
-    var lastName     by mutableStateOf("Rossi")
-    var cardFullName by mutableStateOf("Mario Rossi")
-    var cardNumber   by mutableStateOf("1234 5678 9012 3456")
-    var cardExpire   by mutableStateOf("08/27")
-    var cardCVV      by mutableStateOf("123")
 
-    fun update(
-        firstName:    String,
-        lastName:     String,
-        cardNumber:   String,
-        expireMonth:  String,
-        expireYear:   String,
-        cvv:          String
-    ) {
-        this.firstName     = firstName
-        this.lastName      = lastName
-        this.cardFullName  = "$firstName $lastName"
-        this.cardNumber    = cardNumber
-        this.cardExpire    = "$expireMonth/$expireYear"
-        this.cardCVV       = cvv
+    private val _infoUi = MutableStateFlow<ProfileInfoUiState?>(null)
+    val infoUi: StateFlow<ProfileInfoUiState?> = _infoUi.asStateFlow()
+
+    private val _editUi = MutableStateFlow<ProfileEditUiState?>(null)
+    val editUi: StateFlow<ProfileEditUiState?> = _editUi.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    init { loadProfile() }
+
+    fun loadProfile() = viewModelScope.launch {
+        _isLoading.value = true
+        val p = ProfileModel.getCurrent()
+        val info = ProfileInfoUiState(
+            firstName       = p.firstName,
+            lastName        = p.lastName,
+            cardFullName    = p.cardFullName,
+            cardNumber      = p.cardNumber,
+            cardExpireMonth = p.cardExpireMonth,
+            cardExpireYear  = p.cardExpireYear,
+            cardCVV         = p.cardCVV,
+            orderStatus     = p.orderStatus,
+            menuName        = p.menuName
+        )
+        _infoUi.value = info
+        _editUi.value = info.let {
+            ProfileEditUiState(
+                firstName       = it.firstName,
+                lastName        = it.lastName,
+                cardFullName    = it.cardFullName,
+                cardNumber      = it.cardNumber,
+                cardExpireMonth = it.cardExpireMonth,
+                cardExpireYear  = it.cardExpireYear,
+                cardCVV         = it.cardCVV,
+                orderStatus     = it.orderStatus,
+                menuName        = it.menuName
+            )
+        }
+        _isLoading.value = false
+    }
+
+    fun updateProfile(changes: ProfileEditUiState) = viewModelScope.launch {
+        _isLoading.value = true
+        // Qui potresti fare chiamata a server/DB.
+        _infoUi.value = ProfileInfoUiState(
+            firstName       = changes.firstName,
+            lastName        = changes.lastName,
+            cardFullName    = changes.cardFullName,
+            cardNumber      = changes.cardNumber,
+            cardExpireMonth = changes.cardExpireMonth,
+            cardExpireYear  = changes.cardExpireYear,
+            cardCVV         = changes.cardCVV,
+            orderStatus     = changes.orderStatus,
+            menuName        = changes.menuName
+        )
+        _isLoading.value = false
     }
 }

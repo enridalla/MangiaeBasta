@@ -36,7 +36,7 @@ private const val KEY_LAST_ROUTE = "last_route"
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Menu         : Screen("menu", "Menu", Icons.Filled.RestaurantMenu)
     object Order        : Screen("order", "Ordini", Icons.Filled.ShoppingCart)
-    object Profile      : Screen("profile", "Profilo", Icons.Filled.Person)
+    object ProfileInfo      : Screen("profile", "Profilo", Icons.Filled.Person)
     object ProfileEdit  : Screen("profile_edit", "Modifica Profilo", Icons.Filled.Person)
     object MenuDetail   : Screen("menu_detail/{menuId}", "Dettagli Menu", Icons.Filled.RestaurantMenu) {
         fun createRoute(menuId: Int) = "menu_detail/$menuId"
@@ -84,7 +84,7 @@ private fun TopNavigationBar(
     val screenTitle = when {
         currentRoute == Screen.Menu.route -> Screen.Menu.label
         currentRoute == Screen.Order.route -> Screen.Order.label
-        currentRoute == Screen.Profile.route -> Screen.Profile.label
+        currentRoute == Screen.ProfileInfo.route -> Screen.ProfileInfo.label
         currentRoute == Screen.ProfileEdit.route -> Screen.ProfileEdit.label
         currentRoute?.startsWith("menu_detail") == true -> Screen.MenuDetail.label
         else -> "App Food"
@@ -93,7 +93,7 @@ private fun TopNavigationBar(
     // Controlla se siamo in una pagina primaria o secondaria
     val isMainRoute = currentRoute == Screen.Menu.route ||
             currentRoute == Screen.Order.route ||
-            currentRoute == Screen.Profile.route
+            currentRoute == Screen.ProfileInfo.route
 
     CenterAlignedTopAppBar(
         title = { Text(screenTitle) },
@@ -118,7 +118,7 @@ private fun BottomNavigationBar(navController: NavHostController) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     NavigationBar(containerColor = Color.White, tonalElevation = 4.dp) {
-        listOf(Screen.Menu, Screen.Order, Screen.Profile).forEach { screen ->
+        listOf(Screen.Menu, Screen.Order, Screen.ProfileInfo).forEach { screen ->
             NavigationBarItem(
                 icon = { Icon(screen.icon, contentDescription = screen.label) },
                 label = { Text(screen.label) },
@@ -156,8 +156,19 @@ private fun NavGraph(
         }
 
         composable(Screen.Order.route)       { OrderScreen() }
-        composable(Screen.Profile.route)     { ProfileInfoScreen(navController, profileVM) }
-        composable(Screen.ProfileEdit.route) { ProfileEditScreen(navController, profileVM) }
+        // In your Navigation.kt file, change the problematic lines to:
+        composable(Screen.ProfileInfo.route) { backStackEntry ->
+            ProfileInfoScreen(
+                navController = navController,
+                profileViewModel = profileVM
+            )
+        }
+        composable(Screen.ProfileEdit.route) { backStackEntry ->
+            ProfileEditScreen(
+                navController = navController,
+                profileViewModel = profileVM
+            )
+        }
 
         /* ---- NUOVA DESTINAZIONE ---- */
         composable(

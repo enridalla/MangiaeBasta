@@ -17,3 +17,27 @@ data class MenuDetailUiState(
     val deliveryTimeText: String,
     val imageBase64: String?
 )
+
+data class ProfileInfoUiState(
+    val firstName: String,
+    val lastName: String,
+    val cardFullName: String,
+    val cardNumber: String,
+    val cardExpireMonth: Int,
+    val cardExpireYear: Int,
+    val cardCVV: String,
+    val orderStatus: String,
+    val menuName: String?
+)
+
+data class ProfileEditUiState(
+    val firstName: String,
+    val lastName: String,
+    val cardFullName: String,
+    val cardNumber: String,
+    val cardExpireMonth: Int,
+    val cardExpireYear: Int,
+    val cardCVV: String,
+    val orderStatus: String,
+    val menuName: String?
+)
