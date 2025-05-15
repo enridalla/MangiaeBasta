@@ -34,6 +34,8 @@ import com.example.mangiaebasta.viewmodels.ProfileViewModel
 import com.example.mangiaebasta.views.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.collect
+import com.example.mangiaebasta.components.BottomNavigationBar
+import com.example.mangiaebasta.components.TopNavigationBar
 
 sealed class Screen(
     val route: String,
@@ -113,64 +115,6 @@ fun Navigation(
             startRoute = startRoute,
             startParams = startParams
         )
-    }
-}
-
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-private fun TopNavigationBar(
-    navController: NavHostController,
-    navBackStackEntry: NavBackStackEntry?
-) {
-    val currentRoute = navBackStackEntry?.destination?.route
-    val currentScreen = Screen.findScreenByRoute(currentRoute)
-    val screenTitle = currentScreen?.label ?: "App Food"
-    val isMainRoute = currentScreen?.parent == null
-
-    CenterAlignedTopAppBar(
-        title = { Text(screenTitle) },
-        navigationIcon = {
-            if (!isMainRoute) {
-                IconButton(onClick = {
-                    currentScreen?.parent?.let { parent ->
-                        val target = parent.route.substringBefore("{")
-                        navController.navigate(target) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                        }
-                    } ?: navController.popBackStack()
-                }) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Torna indietro")
-                }
-            }
-        },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = Color.White,
-            titleContentColor = MaterialTheme.colorScheme.onBackground
-        )
-    )
-}
-
-@Composable
-private fun BottomNavigationBar(navController: NavHostController) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
-    NavigationBar(containerColor = Color.White, tonalElevation = 4.dp) {
-        listOf(Screen.MenuList, Screen.Order, Screen.ProfileInfo).forEach { screen ->
-            NavigationBarItem(
-                icon = { Icon(screen.icon, contentDescription = screen.label) },
-                label = { Text(screen.label) },
-                selected = currentRoute == screen.route,
-                onClick = {
-                    navController.navigate(screen.route) {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            )
-        }
     }
 }
 
