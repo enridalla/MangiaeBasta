@@ -40,6 +40,14 @@ android {
 }
 
 dependencies {
+    implementation("androidx.datastore:datastore-preferences:1.1.6")
+
+    // optional - RxJava2 support
+    implementation("androidx.datastore:datastore-preferences-rxjava2:1.1.6")
+
+    // optional - RxJava3 support
+    implementation("androidx.datastore:datastore-preferences-rxjava3:1.1.6")
+
     implementation("androidx.core:core-ktx:1.12.0")
 
     implementation("androidx.compose.material3:material3")

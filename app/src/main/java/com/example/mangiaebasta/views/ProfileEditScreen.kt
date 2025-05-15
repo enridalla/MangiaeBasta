@@ -22,8 +22,8 @@ import com.example.mangiaebasta.Screen
 
 @Composable
 fun ProfileEditScreen(
-    profileViewModel: ProfileViewModel,
-    navController: NavController
+    navController: NavController,
+    profileViewModel: ProfileViewModel
 ) {
     val state by profileViewModel.editUi.collectAsState(initial = null)
     val isLoading by profileViewModel.isLoading.collectAsState()
