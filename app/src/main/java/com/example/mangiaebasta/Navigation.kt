@@ -1,7 +1,9 @@
 package com.example.mangiaebasta
 
 import android.os.Bundle
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -10,6 +12,7 @@ import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -29,6 +32,7 @@ import com.example.mangiaebasta.models.DataStoreManager
 import com.example.mangiaebasta.viewmodels.MenuViewModel
 import com.example.mangiaebasta.viewmodels.ProfileViewModel
 import com.example.mangiaebasta.views.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.collect
 
 sealed class Screen(
@@ -51,8 +55,7 @@ sealed class Screen(
             if (it.startsWith("menu_detail/")) MenuDetail
             else getAllScreens().find { screen -> screen.route == it }
         }
-        fun extractMenuIdFromRoute(route: String) =
-            route.substringAfter("menu_detail/").toIntOrNull()
+        fun extractMenuIdFromRoute(route: String) = route.substringAfter("menu_detail/").toIntOrNull()
     }
 }
 
@@ -62,20 +65,37 @@ fun Navigation(
     startParams: Bundle? = null
 ) {
     val context = LocalContext.current
+    val menuVM: MenuViewModel = viewModel()
 
-    val lastRoute by DataStoreManager
-        .getLastRoute(context)
-        .collectAsState(initial = Screen.MenuList.route)
+    var isLoading by remember { mutableStateOf(true) }
+    var startRoute by remember { mutableStateOf(Screen.MenuList.route) }
+
+    LaunchedEffect(Unit) {
+        val route = DataStoreManager.getLastRoute(context).first()
+        startRoute = route
+        if (route.startsWith("menu_detail/")) {
+            Screen.extractMenuIdFromRoute(route)?.let { id ->
+                menuVM.loadMenu(id)
+            }
+        }
+        isLoading = false
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     LaunchedEffect(navController) {
         navController.currentBackStackEntryFlow.collect { entry ->
             val routeTemplate = entry.destination.route ?: return@collect
-            val currentRoute = entry.arguments
-                ?.getString("menuId")
-                ?.let { id ->
-                    if (routeTemplate.contains("{menuId}")) "menu_detail/$id"
-                    else routeTemplate
-                } ?: routeTemplate
+            val args = entry.arguments
+            val idArg = args?.getInt("menuId")
+            val currentRoute = if (idArg != null && idArg > 0 && routeTemplate.contains("{menuId}")) {
+                "menu_detail/$idArg"
+            } else routeTemplate
 
             DataStoreManager.saveLastRoute(context, currentRoute)
         }
@@ -90,14 +110,14 @@ fun Navigation(
         NavGraph(
             navController = navController,
             innerPadding = innerPadding,
-            startRoute = lastRoute,
+            startRoute = startRoute,
             startParams = startParams
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun TopNavigationBar(
     navController: NavHostController,
     navBackStackEntry: NavBackStackEntry?
@@ -165,7 +185,8 @@ private fun NavGraph(
     val profileVM: ProfileViewModel = viewModel()
 
     LaunchedEffect(startParams) {
-        startParams?.getInt("menuId", -1)?.takeIf { it > 0 && startRoute == Screen.MenuDetail.route }
+        startParams?.getInt("menuId", -1)
+            ?.takeIf { it > 0 && startRoute.startsWith("menu_detail/") }
             ?.let { menuVM.loadMenu(it) }
     }
 
@@ -187,7 +208,6 @@ private fun NavGraph(
             arguments = listOf(navArgument("menuId") { type = NavType.IntType })
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getInt("menuId")
-                ?: startParams?.getInt("menuId", -1)
                 ?: return@composable
             MenuDetailScreen(menuId = id, navController = navController, menuViewModel = menuVM)
         }
