@@ -1,3 +1,4 @@
+// MenuDetailScreen.kt
 package com.example.mangiaebasta.views
 
 import android.graphics.BitmapFactory
@@ -27,7 +28,9 @@ fun MenuDetailScreen(
     navController: NavHostController,
     menuViewModel: MenuViewModel
 ) {
-    LaunchedEffect(menuId) { menuViewModel.loadMenu(menuId) }
+    LaunchedEffect(menuId) {
+        menuViewModel.loadMenu(menuId)
+    }
 
     val menu by menuViewModel.selectedMenuUi.collectAsState()
     val isLoading by menuViewModel.isLoading.collectAsState()
@@ -94,7 +97,11 @@ private fun MenuDetailContent(
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Prezzo:", style = MaterialTheme.typography.titleMedium)
-            Text(menu.priceText, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text(
+                menu.priceText,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Consegna:", style = MaterialTheme.typography.titleMedium)

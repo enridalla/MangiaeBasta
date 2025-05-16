@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+
+    id("kotlinx-serialization")
 }
 
 android {
@@ -40,6 +42,7 @@ android {
 }
 
 dependencies {
+
     implementation("androidx.datastore:datastore-preferences:1.1.6")
 
     // optional - RxJava2 support
@@ -80,4 +83,13 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    // Core
+    implementation(libs.ktor.ktor.client.core)
+    implementation(libs.ktor.client.android)
+    // Logging
+    implementation(libs.ktor.client.logging)
+    // JSON Serialization
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.io.ktor.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json.v210)
 }

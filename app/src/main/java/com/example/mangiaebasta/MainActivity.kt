@@ -29,7 +29,6 @@ class MainActivity : ComponentActivity() {
                     // non serve più startRoute: lo legge Navigation da DataStore
                     Navigation(
                         navController = navController,
-                        startParams   = startParams
                     )
                 }
             }

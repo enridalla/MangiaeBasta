@@ -1,64 +1,329 @@
 package com.example.mangiaebasta.models
 
-import kotlinx.coroutines.delay
+import android.net.Uri
+import android.util.Log
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.json.Json
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.isSuccess
+import kotlinx.serialization.Serializable
 
-/**
- * Modello dati e repository fittizio.
- */
-data class MenuModel(
-    val mid: Int,
-    val name: String,
-    val shortDescription: String,
-    val longDescription: String,
-    val price: Double,
-    val deliveryTime: Int,
-    val image: String? = null
-) {
-    companion object {
-        /** Pixel rosso 16×16 PNG su una sola riga (niente spazi o \n). */
-        private const val PLACEHOLDER_BASE64 =
-            "iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAIAAACQKrqGAAAACXBIWXMAAAsSAAALEgHS3X78AAAA" +
-                    "B3RJTUUH6AYGCgUIos5jUwAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4X" +
-                    "AAABGklEQVQ4y7XSMUoDQRQG4Gf+TbxAQUHBzU0Gh1KQ8hUlC4uFH0EVBBwEVkUhkFFEEbdgYiaC" +
-                    "CMqS8gaQm6Cn2MPdw88z75w77337jnjfj1iZqJumGco1hzVPcYzTKOorHhVVEVFKG2SmMYx1xQn+" +
-                    "EQ3wnl1dScGx3sIwDxB0Mypxnl6/jHB5DT8IVVdF0H1fRuY7gdZ03TG93w9pE8lKgLxVi+4DJH5R" +
-                    "KqXOUP8sw4Ck05wcN9GI8RBTi7yuD9KkSLQU6vq/JgXiu03Yht+oF67xK1pZM38B4wT9tgM5U4FC" +
-                    "5gp9WAHA9sDm0bXX5u2nZ8DhUlpXnOBp5P+Sul2TaQytMJfV5u3fcAQtT/mo+KJ6R/nkAOzU32nA" +
-                    "Cb4k+wFHg+hVdV0zbQAAAABJRU5ErkJggg=="
+class MenuModel {
+    val baseUrl = "https://develop.ewlab.di.unimi.it/mc/2425/menu"
+    private val sid = "Qx4f16AFHgPUFe2RG4gXVnVPbkf95zJ8Ih7TIifkKK7a73yn99rJ48kxVDi04qyJ"
+    private val defaultLocation = Location(45.4654, 9.1866)
+    private val TAG = "MenuModel"
 
-        /** Dati mock. */
-        private val sampleMenus = listOf(
-            MenuModel(
-                mid = 1,
-                name = "Pizza Margherita",
-                shortDescription = "Pomodoro, mozzarella e basilico fresco",
-                longDescription = "La regina delle pizze con pomodoro San Marzano, mozzarella fior di latte e basilico.",
-                price = 8.50,
-                deliveryTime = 30,
-                image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
-            ),
-            MenuModel(
-                mid = 2,
-                name = "Hamburger Gourmet",
-                shortDescription = "Manzo 200 g, cheddar, bacon e salsa BBQ",
-                longDescription = "Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQHamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale. artigianale.Hamburger di manzo 100% italiano, cheddar, bacon croccante e salsa BBQ artigianale.",
-                price = 11.00,
-                deliveryTime = 25,
-                image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
-            ),
-            MenuModel(
-                mid = 3,
-                name = "Insalata Greca",
-                shortDescription = "Feta, olive kalamata, pomodorini e cetrioli",
-                longDescription = "Feta DOP, olive kalamata, pomodorini, cetrioli e origano.",
-                price = 7.00,
-                deliveryTime = 15,
-                image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
-            )
+    private val client = HttpClient(Android) {
+        install(ContentNegotiation) {
+            json(Json { ignoreUnknownKeys = true })
+        }
+    }
+
+    suspend fun getMenus(): List<MenuItemWithImage> {
+        Log.d(TAG, "Iniziando getMenus()")
+        val url = Uri.parse(baseUrl)
+
+        val completeUrlString = url.buildUpon()
+            .appendQueryParameter("sid", sid)
+            .appendQueryParameter("lat", defaultLocation.lat.toString())
+            .appendQueryParameter("lng", defaultLocation.lng.toString())
+            .build()
+            .toString()
+
+        Log.d(TAG, "Fetching menus from: $completeUrlString")
+
+        try {
+            val response = client.get(completeUrlString)
+            Log.d(TAG, "Risposta ricevuta con stato: ${response.status.value}")
+
+            if (!response.status.isSuccess()) {
+                val errText = response.bodyAsText()
+                Log.e(TAG, "ERROR ${response.status.value}: $errText")
+                throw Exception("Failed to fetch menus: $errText")
+            }
+
+            val menuItems: List<MenuItem> = response.body()
+            Log.d(TAG, "Received ${menuItems.size} menu items")
+            Log.d(TAG, "Menu ricevuti: ${menuItems.map { it.name }}")
+
+            val result = menuItems.map { menuItem ->
+                Log.d(TAG, "Elaborazione menu item: ${menuItem.mid} - ${menuItem.name}")
+                try {
+                    Log.d(TAG, "Caricamento immagine per menu ${menuItem.mid}")
+                    val imageBase64 = getMenuImage(menuItem.mid)
+                    Log.d(TAG, "Immagine caricata per ${menuItem.mid}, lunghezza: ${imageBase64?.length ?: 0}")
+
+                    MenuItemWithImage(
+                        mid = menuItem.mid,
+                        name = menuItem.name,
+                        price = menuItem.price,
+                        location = menuItem.location,
+                        imageVersion = menuItem.imageVersion,
+                        shortDescription = menuItem.shortDescription,
+                        deliveryTime = menuItem.deliveryTime,
+                        image = imageBase64
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to fetch image for menu item ${menuItem.mid}: ${e.message}", e)
+                    MenuItemWithImage(
+                        mid = menuItem.mid,
+                        name = menuItem.name,
+                        price = menuItem.price,
+                        location = menuItem.location,
+                        imageVersion = menuItem.imageVersion,
+                        shortDescription = menuItem.shortDescription,
+                        deliveryTime = menuItem.deliveryTime,
+                        image = null
+                    )
+                }
+            }
+
+            Log.d(TAG, "getMenus() completato con successo, ritorno ${result.size} elementi")
+            return result
+        } catch (e: Exception) {
+            Log.e(TAG, "Errore in getMenus(): ${e.message}", e)
+            throw e
+        }
+    }
+
+    // La funzione getMenuImage ora restituisce direttamente la stringa base64
+    suspend fun getMenuImage(mid: Int): String {
+        val url = Uri.parse("$baseUrl/$mid/image").buildUpon()
+            .appendQueryParameter("sid", sid)
+            .appendQueryParameter("mid", mid.toString())
+            .build()
+            .toString()
+
+        val response: HttpResponse = client.get(url)
+        if (!response.status.isSuccess()) {
+            val err = response.bodyAsText()
+            throw Exception("Failed to fetch menu image: $err")
+        }
+
+        // Deserializziamo direttamente in Base64Response:
+        val base64Resp: Base64Response = response.body()
+        return base64Resp.base64
+    }
+
+    suspend fun getMenuDetails(mid: Int): DetailedMenuItemWithImage {
+        Log.d(TAG, "Iniziando getMenuDetails() per menu $mid")
+        val url = Uri.parse("$baseUrl/$mid")
+
+        val completeUrlString = url.buildUpon()
+            .appendQueryParameter("sid", sid)
+            .appendQueryParameter("lat", defaultLocation.lat.toString())
+            .appendQueryParameter("lng", defaultLocation.lng.toString())
+            .build()
+            .toString()
+
+        Log.d(TAG, "Fetching menu details from: $completeUrlString")
+
+        try {
+            val response = client.get(completeUrlString)
+            Log.d(TAG, "Dettagli menu ricevuti per $mid con stato: ${response.status.value}")
+
+            if (!response.status.isSuccess()) {
+                val errText = response.bodyAsText()
+                Log.e(TAG, "ERROR ${response.status.value}: $errText")
+                throw Exception("Failed to fetch menu details: $errText")
+            }
+
+            val menuItem: DetailedMenuItem = response.body()
+            Log.d(TAG, "Dettagli menu deserializzati: ${menuItem.name}, descrizione: ${menuItem.shortDescription}")
+
+            try {
+                Log.d(TAG, "Caricamento immagine per dettaglio menu $mid")
+                val imageBase64 = getMenuImage(menuItem.mid)
+                Log.d(TAG, "Immagine caricata per dettaglio menu $mid, lunghezza: ${imageBase64?.length ?: 0}")
+
+                return DetailedMenuItemWithImage(
+                    mid = menuItem.mid,
+                    name = menuItem.name,
+                    price = menuItem.price,
+                    location = menuItem.location,
+                    imageVersion = menuItem.imageVersion,
+                    shortDescription = menuItem.shortDescription,
+                    deliveryTime = menuItem.deliveryTime,
+                    longDescription = menuItem.longDescription,
+                    image = imageBase64  // Assegniamo direttamente la stringa base64
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to fetch image for menu item ${menuItem.mid}: ${e.message}", e)
+                return DetailedMenuItemWithImage(
+                    mid = menuItem.mid,
+                    name = menuItem.name,
+                    price = menuItem.price,
+                    location = menuItem.location,
+                    imageVersion = menuItem.imageVersion,
+                    shortDescription = menuItem.shortDescription,
+                    deliveryTime = menuItem.deliveryTime,
+                    longDescription = menuItem.longDescription,
+                    image = null
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Errore in getMenuDetails() per menu $mid: ${e.message}", e)
+            throw e
+        }
+    }
+
+    suspend fun order(mid: Int): Order {
+        Log.d(TAG, "Iniziando order() per menu $mid")
+        val orderUrl = Uri.parse("$baseUrl/$mid/buy")
+
+        val completeUrlString = orderUrl.toString()
+
+        Log.d(TAG, "Ordering menu item $mid from: $completeUrlString")
+
+        val delivery = DeliveryLocationWithSid(
+            sid = sid,
+            deliveryLocation = defaultLocation
         )
+        Log.d(TAG, "Parametri ordine: sid=${sid.take(10)}..., location=(${defaultLocation.lat}, ${defaultLocation.lng})")
 
-        /** Simula chiamate API. */
-        suspend fun getAll(): List<MenuModel> { delay(400); return sampleMenus }
-        suspend fun getById(id: Int): MenuModel? { delay(150); return sampleMenus.find { it.mid == id } }
+        try {
+            val response = client.post(completeUrlString) {
+                contentType(ContentType.Application.Json)
+                setBody(delivery)
+            }
+            Log.d(TAG, "Risposta ordine ricevuta con stato: ${response.status.value}")
+
+            if (!response.status.isSuccess()) {
+                val errText = response.bodyAsText()
+                Log.e(TAG, "ERROR ${response.status.value}: $errText")
+                throw Exception("Failed to place order: $errText")
+            }
+
+            val order: Order = response.body()
+            Log.d(TAG, "Order placed successfully: oid=${order.oid}, status=${order.status}")
+            return order
+        } catch (e: Exception) {
+            Log.e(TAG, "Errore nell'ordine menu $mid: ${e.message}", e)
+            throw e
+        }
     }
 }
+
+@Serializable
+data class MenuList(
+    val items: List<MenuItem>
+)
+
+@Serializable
+data class Profile(
+    val firstName: String?,
+    val lastName: String?,
+    val cardFullName: String?,
+    val cardNumber: Long?,
+    val cardExpireMonth: Int?,
+    val cardExpireYear: Int?,
+    val cardCVV: Int?,
+    val uid: Int,
+    val lastOid: Int?,
+    val orderStatus: String?
+)
+
+@Serializable
+data class Location(
+    val lat: Double,
+    val lng: Double
+)
+
+@Serializable
+data class MenuItem(
+    val mid: Int,
+    val name: String,
+    val price: Double,
+    val location: Location,
+    val imageVersion: Int,
+    val shortDescription: String,
+    val deliveryTime: Int
+)
+
+@Serializable
+data class DetailedMenuItem(
+    val mid: Int,
+    val name: String,
+    val price: Double,
+    val location: Location,
+    val imageVersion: Int,
+    val shortDescription: String,
+    val deliveryTime: Int,
+    val longDescription: String
+)
+
+@Serializable
+data class User(
+    val uid: Int,
+    val sid: String
+)
+
+@Serializable
+data class Order(
+    val oid: Int,
+    val mid: Int,
+    val uid: Int,
+    val creationTimestamp: String,
+    val status: String,
+    val deliveryLocation: Location,
+    val currentPosition: Location
+)
+
+@Serializable
+data class DeliveryLocationWithSid(
+    val sid: String,
+    val deliveryLocation: Location
+)
+
+@Serializable
+data class ProfileToUpdate(
+    val firstName: String,
+    val lastName: String,
+    val cardFullName: String,
+    val cardNumber: String,
+    val cardExpireMonth: String,
+    val cardExpireYear: String,
+    val cardCVV: String,
+    val sid: String
+)
+
+@Serializable
+data class MenuItemWithImage(
+    val mid: Int,
+    val name: String,
+    val price: Double,
+    val location: Location,
+    val imageVersion: Int,
+    val shortDescription: String,
+    val deliveryTime: Int,
+    val image: String?  // La stringa base64 dell'immagine
+)
+
+@Serializable
+data class DetailedMenuItemWithImage(
+    val mid: Int,
+    val name: String,
+    val price: Double,
+    val location: Location,
+    val imageVersion: Int,
+    val shortDescription: String,
+    val deliveryTime: Int,
+    val longDescription: String,
+    val image: String?  // La stringa base64 dell'immagine
+)
+
+@Serializable
+data class Base64Response(
+    val base64: String
+)

@@ -3,10 +3,12 @@ package com.example.mangiaebasta.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mangiaebasta.models.MenuModel
+import com.example.mangiaebasta.models.Order
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class MenuViewModel : ViewModel() {
+    private val menuModel = MenuModel()
 
     // --- STREAM PER LA LISTA ---
     private val _menusUi = MutableStateFlow<List<MenuListItemUiState>>(emptyList())
@@ -19,27 +21,38 @@ class MenuViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    // Stream per gestire gli ordini
+    private val _orderStatus = MutableStateFlow<OrderStatus?>(null)
+    val orderStatus: StateFlow<OrderStatus?> = _orderStatus
+
     init { loadMenus() }
 
     fun loadMenus() = viewModelScope.launch {
         _isLoading.value = true
-        val domain = MenuModel.getAll()
-        _menusUi.value = domain.map { menu ->
-            MenuListItemUiState(
-                mid = menu.mid,
-                name = menu.name,
-                shortDescription = menu.shortDescription,
-                priceText = "€${"%.2f".format(menu.price)}",
-                deliveryTimeText = "${menu.deliveryTime} min",
-                imageBase64 = menu.image
-            )
+        try {
+            val menus = menuModel.getMenus()
+            _menusUi.value = menus.map { menu ->
+                MenuListItemUiState(
+                    mid = menu.mid,
+                    name = menu.name,
+                    shortDescription = menu.shortDescription,
+                    priceText = "€${"%.2f".format(menu.price)}",
+                    deliveryTimeText = "${menu.deliveryTime} min",
+                    imageBase64 = menu.image
+                )
+            }
+        } catch (e: Exception) {
+            // Gestione degli errori
+            _menusUi.value = emptyList()
+        } finally {
+            _isLoading.value = false
         }
-        _isLoading.value = false
     }
 
     fun loadMenu(id: Int) = viewModelScope.launch {
         _isLoading.value = true
-        MenuModel.getById(id)?.let { menu ->
+        try {
+            val menu = menuModel.getMenuDetails(id)
             _selectedMenuUi.value = MenuDetailUiState(
                 mid = menu.mid,
                 name = menu.name,
@@ -48,7 +61,33 @@ class MenuViewModel : ViewModel() {
                 deliveryTimeText = "${menu.deliveryTime} min",
                 imageBase64 = menu.image
             )
+        } catch (e: Exception) {
+            // Gestione degli errori
+            _selectedMenuUi.value = null
+        } finally {
+            _isLoading.value = false
         }
-        _isLoading.value = false
     }
+
+    fun orderMenu(menuId: Int) = viewModelScope.launch {
+        _isLoading.value = true
+        try {
+            val order = menuModel.order(menuId)
+            _orderStatus.value = OrderStatus.Success(order)
+        } catch (e: Exception) {
+            _orderStatus.value = OrderStatus.Error(e.message ?: "Errore durante l'ordine")
+        } finally {
+            _isLoading.value = false
+        }
+    }
+
+    fun resetOrderStatus() {
+        _orderStatus.value = null
+    }
+}
+
+// Stato dell'ordine
+sealed class OrderStatus {
+    data class Success(val order: Order) : OrderStatus()
+    data class Error(val message: String) : OrderStatus()
 }

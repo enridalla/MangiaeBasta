@@ -1,12 +1,13 @@
 package com.example.mangiaebasta.viewmodels
 
+// Classi di stato UI per la visualizzazione dei menu
 data class MenuListItemUiState(
     val mid: Int,
     val name: String,
     val shortDescription: String,
-    val priceText: String,        // es. "€8.50"
-    val deliveryTimeText: String, // es. "30 min"
-    val imageBase64: String?      // raw Base64, UI decodifica
+    val priceText: String,
+    val deliveryTimeText: String,
+    val imageBase64: String?
 )
 
 data class MenuDetailUiState(
