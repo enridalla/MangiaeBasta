@@ -1,4 +1,3 @@
-// MenuDetailScreen.kt
 package com.example.mangiaebasta.views
 
 import android.graphics.BitmapFactory
@@ -8,12 +7,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -38,10 +35,11 @@ fun MenuDetailScreen(
     val scope = rememberCoroutineScope()
 
     Scaffold(
-        contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)
+        contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
         Box(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(padding),
@@ -65,17 +63,17 @@ private fun MenuDetailContent(
     menu: MenuDetailUiState,
     onOrder: (Int) -> Unit
 ) {
+    // decodifica Base64 → Bitmap → ImageBitmap
     val imageBitmap = menu.imageBase64
         ?.let { Base64.decode(it, Base64.DEFAULT) }
         ?.let { bytes -> BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
         ?.asImageBitmap()
 
     Column(
-        Modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(12.dp))
-            .padding(16.dp)
+            .verticalScroll(rememberScrollState())    // ← scroll come nel tuo originale
+            .padding(16.dp)                            // solo padding, niente shape/card
     ) {
         imageBitmap?.let {
             Image(
@@ -85,7 +83,6 @@ private fun MenuDetailContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(220.dp)
-                    .clip(RoundedCornerShape(12.dp))
             )
             Spacer(Modifier.height(12.dp))
         }
@@ -95,7 +92,10 @@ private fun MenuDetailContent(
         Text(menu.longDescription, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(12.dp))
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Text("Prezzo:", style = MaterialTheme.typography.titleMedium)
             Text(
                 menu.priceText,
@@ -103,18 +103,24 @@ private fun MenuDetailContent(
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+
+        Spacer(Modifier.height(8.dp))
+
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Text("Consegna:", style = MaterialTheme.typography.titleMedium)
             Text(menu.deliveryTimeText, style = MaterialTheme.typography.titleMedium)
         }
 
         Spacer(Modifier.height(16.dp))
+
         Button(
             onClick = { onOrder(menu.mid) },
-            Modifier
+            modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
-                .clip(RoundedCornerShape(8.dp))
         ) {
             Text("Ordina ora")
         }
