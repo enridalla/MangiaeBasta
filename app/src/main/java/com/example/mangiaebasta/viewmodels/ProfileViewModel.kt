@@ -75,16 +75,16 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    private fun checkProfileCompleteness(profile: Profile) {
+    fun checkProfileCompleteness(profile: Profile?): Boolean {
         // Un profilo è considerato completo se i campi essenziali non sono nulli
-        _isProfileComplete.value = !(
-                profile.firstName.isNullOrBlank() &&
-                        profile.lastName.isNullOrBlank() &&
-                        profile.cardFullName.isNullOrBlank() &&
-                        profile.cardNumber == null &&
-                        profile.cardExpireMonth == null &&
-                        profile.cardExpireYear == null &&
-                        profile.cardCVV == null
+        return !(
+                profile?.firstName.isNullOrBlank() &&
+                        profile?.lastName.isNullOrBlank() &&
+                        profile?.cardFullName.isNullOrBlank() &&
+                        profile?.cardNumber == null &&
+                        profile?.cardExpireMonth == null &&
+                        profile?.cardExpireYear == null &&
+                        profile?.cardCVV == null
                 )
     }
 }

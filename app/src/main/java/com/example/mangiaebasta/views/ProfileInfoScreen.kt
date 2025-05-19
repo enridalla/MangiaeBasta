@@ -26,7 +26,6 @@ fun ProfileInfoScreen(
     val profile by profileViewModel.profile.collectAsState(initial = null)
     val orderInfo by profileViewModel.orderInfo.collectAsState(initial = null)
     val isLoading by profileViewModel.isLoading.collectAsState()
-    val isProfileComplete by profileViewModel.isProfileComplete.collectAsState()
 
     // Ricarica i dati quando la schermata viene visualizzata
     LaunchedEffect(Unit) {
@@ -61,7 +60,7 @@ fun ProfileInfoScreen(
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
-        } else if (!isProfileComplete) {
+        } else if (!profileViewModel.checkProfileCompleteness(profile)) {
             // Mostra la schermata di completamento profilo
             EmptyProfileView(onCompleteProfile = {
                 navController.navigate(Screen.ProfileEdit.route)
