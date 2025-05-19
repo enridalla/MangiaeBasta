@@ -8,15 +8,13 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.mangiaebasta.viewmodels.ProfileEditUiState
+import com.example.mangiaebasta.models.Profile
 import com.example.mangiaebasta.viewmodels.ProfileViewModel
 import com.example.mangiaebasta.Screen
 
@@ -25,11 +23,10 @@ fun ProfileEditScreen(
     navController: NavController,
     profileViewModel: ProfileViewModel
 ) {
-    val state by profileViewModel.editUi.collectAsState(initial = null)
+    val profile by profileViewModel.profile.collectAsState(initial = null)
     val isLoading by profileViewModel.isLoading.collectAsState()
     val scrollState = rememberScrollState()
 
-    // Scaffold senza padding verticale di sistema
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)
     ) { padding ->
@@ -41,20 +38,21 @@ fun ProfileEditScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            if (isLoading || state == null) {
+            if (isLoading || profile == null) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
-                val s = state!!
-                var firstName by remember { mutableStateOf(s.firstName) }
-                var lastName by remember { mutableStateOf(s.lastName) }
-                var cardFullName by remember { mutableStateOf(s.cardFullName) }
-                var cardNumber by remember { mutableStateOf(s.cardNumber) }
-                var expireMonth by remember { mutableStateOf(s.cardExpireMonth.toString()) }
-                var expireYear by remember { mutableStateOf(s.cardExpireYear.toString()) }
-                var cvv by remember { mutableStateOf(s.cardCVV) }
-                var orderStatus by remember { mutableStateOf(s.orderStatus) }
-                var menuName by remember { mutableStateOf(s.menuName ?: "") }
+                val currentProfile = profile!!
 
+                // Gestione dei valori nulli dal profilo
+                var firstName by remember { mutableStateOf(currentProfile.firstName ?: "") }
+                var lastName by remember { mutableStateOf(currentProfile.lastName ?: "") }
+                var cardFullName by remember { mutableStateOf(currentProfile.cardFullName ?: "") }
+                var cardNumber by remember { mutableStateOf(currentProfile.cardNumber?.toString() ?: "") }
+                var expireMonth by remember { mutableStateOf(currentProfile.cardExpireMonth?.toString() ?: "") }
+                var expireYear by remember { mutableStateOf(currentProfile.cardExpireYear?.toString() ?: "") }
+                var cvv by remember { mutableStateOf(currentProfile.cardCVV?.toString() ?: "") }
+
+                // Funzione per accettare solo caratteri numerici
                 fun onlyDigits(input: String, maxLen: Int? = null): String {
                     val digits = input.filter { it.isDigit() }
                     return maxLen?.let { digits.take(it) } ?: digits
@@ -64,6 +62,7 @@ fun ProfileEditScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    // Sezione dati personali
                     OutlinedTextField(
                         value = firstName,
                         onValueChange = { firstName = it },
@@ -78,6 +77,8 @@ fun ProfileEditScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    // Sezione dati carta
                     OutlinedTextField(
                         value = cardFullName,
                         onValueChange = { cardFullName = it },
@@ -118,42 +119,29 @@ fun ProfileEditScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
-                        value = orderStatus,
-                        onValueChange = { orderStatus = it },
-                        label = { Text("Stato ordine") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = menuName,
-                        onValueChange = { menuName = it },
-                        label = { Text("Menu ordinato") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
 
                     Spacer(Modifier.height(24.dp))
 
                     Button(
                         onClick = {
-                            val m = expireMonth.toIntOrNull() ?: 0
-                            val y = expireYear.toIntOrNull() ?: 0
-                            profileViewModel.updateProfile(
-                                ProfileEditUiState(
-                                    firstName = firstName,
-                                    lastName = lastName,
-                                    cardFullName = cardFullName,
-                                    cardNumber = cardNumber,
-                                    cardExpireMonth = m,
-                                    cardExpireYear = y,
-                                    cardCVV = cvv,
-                                    orderStatus = orderStatus,
-                                    menuName = menuName.ifBlank { null }
-                                )
+                            // Crea un nuovo profilo con i dati aggiornati
+                            val updatedProfile = Profile(
+                                firstName = firstName.takeIf { it.isNotBlank() },
+                                lastName = lastName.takeIf { it.isNotBlank() },
+                                cardFullName = cardFullName.takeIf { it.isNotBlank() },
+                                cardNumber = cardNumber.toLongOrNull(),
+                                cardExpireMonth = expireMonth.toIntOrNull(),
+                                cardExpireYear = expireYear.toIntOrNull(),
+                                cardCVV = cvv.toIntOrNull(),
+                                uid = currentProfile.uid
                             )
+
+                            // Aggiorna il profilo
+                            profileViewModel.updateProfile(updatedProfile)
+
+                            // Torna alla schermata di visualizzazione
                             navController.navigate(Screen.ProfileInfo.route) {
-                                popUpTo("profileEditScreen") { inclusive = true }
+                                popUpTo(Screen.ProfileInfo.route) { inclusive = true }
                             }
                         },
                         modifier = Modifier.fillMaxWidth()

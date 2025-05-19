@@ -97,7 +97,6 @@ class MenuModel {
         }
     }
 
-    // La funzione getMenuImage ora restituisce direttamente la stringa base64
     suspend fun getMenuImage(mid: Int): String {
         val url = Uri.parse("$baseUrl/$mid/image").buildUpon()
             .appendQueryParameter("sid", sid)
@@ -111,7 +110,6 @@ class MenuModel {
             throw Exception("Failed to fetch menu image: $err")
         }
 
-        // Deserializziamo direttamente in Base64Response:
         val base64Resp: Base64Response = response.body()
         return base64Resp.base64
     }
@@ -156,7 +154,7 @@ class MenuModel {
                     shortDescription = menuItem.shortDescription,
                     deliveryTime = menuItem.deliveryTime,
                     longDescription = menuItem.longDescription,
-                    image = imageBase64  // Assegniamo direttamente la stringa base64
+                    image = imageBase64
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to fetch image for menu item ${menuItem.mid}: ${e.message}", e)
@@ -216,25 +214,6 @@ class MenuModel {
 }
 
 @Serializable
-data class MenuList(
-    val items: List<MenuItem>
-)
-
-@Serializable
-data class Profile(
-    val firstName: String?,
-    val lastName: String?,
-    val cardFullName: String?,
-    val cardNumber: Long?,
-    val cardExpireMonth: Int?,
-    val cardExpireYear: Int?,
-    val cardCVV: Int?,
-    val uid: Int,
-    val lastOid: Int?,
-    val orderStatus: String?
-)
-
-@Serializable
 data class Location(
     val lat: Double,
     val lng: Double
@@ -263,11 +242,6 @@ data class DetailedMenuItem(
     val longDescription: String
 )
 
-@Serializable
-data class User(
-    val uid: Int,
-    val sid: String
-)
 
 @Serializable
 data class Order(
@@ -287,18 +261,6 @@ data class DeliveryLocationWithSid(
 )
 
 @Serializable
-data class ProfileToUpdate(
-    val firstName: String,
-    val lastName: String,
-    val cardFullName: String,
-    val cardNumber: String,
-    val cardExpireMonth: String,
-    val cardExpireYear: String,
-    val cardCVV: String,
-    val sid: String
-)
-
-@Serializable
 data class MenuItemWithImage(
     val mid: Int,
     val name: String,
@@ -307,7 +269,7 @@ data class MenuItemWithImage(
     val imageVersion: Int,
     val shortDescription: String,
     val deliveryTime: Int,
-    val image: String?  // La stringa base64 dell'immagine
+    val image: String?
 )
 
 @Serializable
@@ -320,7 +282,7 @@ data class DetailedMenuItemWithImage(
     val shortDescription: String,
     val deliveryTime: Int,
     val longDescription: String,
-    val image: String?  // La stringa base64 dell'immagine
+    val image: String?
 )
 
 @Serializable
