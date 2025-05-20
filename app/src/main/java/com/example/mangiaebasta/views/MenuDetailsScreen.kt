@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.mangiaebasta.viewmodels.MenuDetailUiState
 import com.example.mangiaebasta.viewmodels.MenuViewModel
+import com.example.mangiaebasta.viewmodels.OrderStatus
 import kotlinx.coroutines.launch
 
 @Composable
@@ -31,8 +32,32 @@ fun MenuDetailScreen(
 
     val menu by menuViewModel.selectedMenuUi.collectAsState()
     val isLoading by menuViewModel.isLoading.collectAsState()
+    val orderStatus by menuViewModel.orderStatus.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    // Mostra messaggi di successo o errore tramite snackbar
+    LaunchedEffect(orderStatus) {
+        orderStatus?.let {
+            when (it) {
+                is OrderStatus.Success -> {
+                    snackbarHostState.showSnackbar(
+                        message = "Ordine #${it.order.oid} effettuato con successo!",
+                        duration = SnackbarDuration.Short
+                    )
+                    menuViewModel.resetOrderStatus()
+                }
+                is OrderStatus.Error -> {
+                    snackbarHostState.showSnackbar(
+                        message = it.message,
+                        duration = SnackbarDuration.Long,
+                        withDismissAction = true
+                    )
+                    menuViewModel.resetOrderStatus()
+                }
+            }
+        }
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal),
@@ -45,23 +70,46 @@ fun MenuDetailScreen(
                 .padding(padding),
             contentAlignment = Alignment.TopCenter
         ) {
-            if (isLoading || menu == null) {
+            if (isLoading) {
                 CircularProgressIndicator()
+            } else if (menu == null) {
+                ErrorMessage("Impossibile caricare i dettagli del menu")
             } else {
-                MenuDetailContent(menu!!) { id ->
-                    scope.launch {
-                        menuViewModel.orderMenu(id)
-                        snackbarHostState.showSnackbar("Ordine effettuato per il menu #$id")
+                MenuDetailContent(
+                    menu = menu!!,
+                    isOrderLoading = isLoading,
+                    onOrder = { id ->
+                        scope.launch {
+                            menuViewModel.orderMenu(id)
+                        }
                     }
-                }
+                )
             }
         }
     }
 }
 
 @Composable
+private fun ErrorMessage(message: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.error
+        )
+    }
+}
+
+@Composable
 private fun MenuDetailContent(
     menu: MenuDetailUiState,
+    isOrderLoading: Boolean,
     onOrder: (Int) -> Unit
 ) {
     // decodifica Base64 → Bitmap → ImageBitmap
@@ -73,8 +121,8 @@ private fun MenuDetailContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())    // ← scroll come nel tuo originale
-            .padding(16.dp)                            // solo padding, niente shape/card
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
     ) {
         imageBitmap?.let {
             Image(
@@ -121,9 +169,18 @@ private fun MenuDetailContent(
             onClick = { onOrder(menu.mid) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
+                .height(48.dp),
+            enabled = !isOrderLoading
         ) {
-            Text("Ordina ora")
+            if (isOrderLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("Ordina ora")
+            }
         }
     }
 }

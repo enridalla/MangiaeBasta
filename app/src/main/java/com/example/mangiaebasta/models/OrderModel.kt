@@ -13,6 +13,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
+import org.json.JSONObject
 
 class OrderModel {
     private val client = HttpClient(Android) {
@@ -25,7 +26,10 @@ class OrderModel {
         private const val TAG = "OrderModel"
     }
 
-    suspend fun order(mid: Int): Order? {
+    /**
+     * Effettua un ordine e gestisce specifici messaggi di errore dall'API
+     */
+    suspend fun order(mid: Int): Order {
         val sid = "zJQhOtMu8IDfH7WymQTdtS5C2yHyUMw0gAlplK8v0DEn8xgrqtkIk3r1p0Cb9Zdg"
         val location = Location(45.4654, 9.1866)
         val baseUrl = "https://develop.ewlab.di.unimi.it/mc/2425/menu/$mid/buy"
@@ -41,20 +45,55 @@ class OrderModel {
         )
         Log.d(TAG, "order() → payload: $delivery")
 
-        return try {
+        try {
             val response = client.post(completeUrlString) {
                 contentType(ContentType.Application.Json)
                 setBody(delivery)
             }
+
             if (!response.status.isSuccess()) {
-                Log.e(TAG, "order() → ERRORE ${response.status.value}: ${response.bodyAsText()}")
-                null
-            } else {
-                Json.decodeFromString(Order.serializer(), response.bodyAsText())
+                val errorBody = response.bodyAsText()
+                Log.e(TAG, "order() → ERRORE ${response.status.value}: $errorBody")
+
+                // Estrai ed elabora il messaggio di errore
+                val errorMessage = parseErrorMessage(errorBody)
+                throw Exception(errorMessage)
             }
+
+            return Json.decodeFromString(Order.serializer(), response.bodyAsText())
         } catch (e: Exception) {
+            // Se l'eccezione è già stata gestita con parseErrorMessage, la ripropago
+            if (e.message?.startsWith("API Error:") == true) {
+                throw e
+            }
+
             Log.e(TAG, "order() → exception during POST", e)
-            null
+            throw Exception("Errore durante l'invio dell'ordine: ${e.message}")
+        }
+    }
+
+    /**
+     * Analizza il messaggio di errore JSON e lo trasforma in un messaggio user-friendly
+     */
+    private fun parseErrorMessage(errorBody: String): String {
+        return try {
+            // Tenta di analizzare il corpo dell'errore come JSON
+            val jsonObject = JSONObject(errorBody)
+            val message = jsonObject.optString("message", errorBody)
+
+            // Traduci i messaggi di errore comuni in messaggi user-friendly
+            val userFriendlyMessage = when {
+                message.contains("User already has an active order") ->
+                    "Hai già un ordine attivo. Completa il tuo ordine attuale prima di ordinarne uno nuovo."
+                message.contains("Invalid card") ->
+                    "Prima di ordinare devi completare il tuo profilo."
+                else -> "Errore: $message"
+            }
+
+            "API Error: $userFriendlyMessage"
+        } catch (e: Exception) {
+            // In caso non sia un JSON valido, restituisci il messaggio grezzo
+            "API Error: $errorBody"
         }
     }
 
