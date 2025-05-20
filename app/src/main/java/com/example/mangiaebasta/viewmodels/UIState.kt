@@ -32,8 +32,8 @@ data class ProfileInfoUiState(
 
 // Dati dell'ordine
 data class OrderInfoUiState(
-    val orderStatus: String = "",
-    val menuName: String? = null
+    val price: Int,
+    val menuName: String
 )
 
 // Stesso tipo per modifica del profilo

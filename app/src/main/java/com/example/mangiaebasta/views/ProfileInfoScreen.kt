@@ -151,8 +151,8 @@ fun OrderSection(orderInfo: OrderInfoUiState?) {
                     .padding(vertical = 16.dp)
             )
         } else {
-            ProfileRow("Stato ordine:", orderInfo.orderStatus)
-            orderInfo.menuName?.let { ProfileRow("Menu ordinato:", it) }
+            ProfileRow("Prezzo:", orderInfo.price.toString() + "€")
+            ProfileRow("Menu ordinato:", orderInfo.menuName)
         }
     }
 }

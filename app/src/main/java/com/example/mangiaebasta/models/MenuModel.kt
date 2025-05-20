@@ -214,12 +214,6 @@ class MenuModel {
 }
 
 @Serializable
-data class Location(
-    val lat: Double,
-    val lng: Double
-)
-
-@Serializable
 data class MenuItem(
     val mid: Int,
     val name: String,
@@ -240,24 +234,6 @@ data class DetailedMenuItem(
     val shortDescription: String,
     val deliveryTime: Int,
     val longDescription: String
-)
-
-
-@Serializable
-data class Order(
-    val oid: Int,
-    val mid: Int,
-    val uid: Int,
-    val creationTimestamp: String,
-    val status: String,
-    val deliveryLocation: Location,
-    val currentPosition: Location
-)
-
-@Serializable
-data class DeliveryLocationWithSid(
-    val sid: String,
-    val deliveryLocation: Location
 )
 
 @Serializable

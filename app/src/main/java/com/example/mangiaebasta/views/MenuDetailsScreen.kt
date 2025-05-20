@@ -50,6 +50,7 @@ fun MenuDetailScreen(
             } else {
                 MenuDetailContent(menu!!) { id ->
                     scope.launch {
+                        menuViewModel.orderMenu(id)
                         snackbarHostState.showSnackbar("Ordine effettuato per il menu #$id")
                     }
                 }

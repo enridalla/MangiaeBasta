@@ -6,9 +6,11 @@ import com.example.mangiaebasta.models.MenuModel
 import com.example.mangiaebasta.models.Order
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.example.mangiaebasta.models.OrderModel
 
 class MenuViewModel : ViewModel() {
     private val menuModel = MenuModel()
+    private val orderModel = OrderModel()
 
     // --- STREAM PER LA LISTA ---
     private val _menusUi = MutableStateFlow<List<MenuListItemUiState>>(emptyList())
@@ -20,10 +22,6 @@ class MenuViewModel : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
-
-    // Stream per gestire gli ordini
-    private val _orderStatus = MutableStateFlow<OrderStatus?>(null)
-    val orderStatus: StateFlow<OrderStatus?> = _orderStatus
 
     init { loadMenus() }
 
@@ -72,17 +70,12 @@ class MenuViewModel : ViewModel() {
     fun orderMenu(menuId: Int) = viewModelScope.launch {
         _isLoading.value = true
         try {
-            val order = menuModel.order(menuId)
-            _orderStatus.value = OrderStatus.Success(order)
+            val order = orderModel.order(menuId)
         } catch (e: Exception) {
-            _orderStatus.value = OrderStatus.Error(e.message ?: "Errore durante l'ordine")
+            // TODO
         } finally {
             _isLoading.value = false
         }
-    }
-
-    fun resetOrderStatus() {
-        _orderStatus.value = null
     }
 }
 

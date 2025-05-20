@@ -7,9 +7,11 @@ import com.example.mangiaebasta.models.ProfileModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import com.example.mangiaebasta.models.OrderModel
 
 class ProfileViewModel : ViewModel() {
     private val profileModel = ProfileModel()
+    private val orderModel = OrderModel()
 
     // Utilizziamo direttamente i tipi del modello senza mapping
     private val _profile = MutableStateFlow<Profile?>(null)
@@ -46,14 +48,12 @@ class ProfileViewModel : ViewModel() {
     fun loadOrderInfo() {
         viewModelScope.launch {
             try {
-                // Qui dovresti caricare le informazioni sull'ordine dal tuo backend
-                // Per ora usiamo un valore di esempio
-                /*
+                //val orderInfo = TODO
+
                 _orderInfo.value = OrderInfoUiState(
-                    orderStatus = "In consegna",
+                    price = 10,
                     menuName = "Menu Italiano"
                 )
-                */
             } catch (e: Exception) {
                 _orderInfo.value = null
             }
