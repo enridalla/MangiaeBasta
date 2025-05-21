@@ -12,15 +12,21 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.json.JSONObject
 
 class OrderModel {
+
     private val client = HttpClient(Android) {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
     }
+
+    // Utilizziamo il singleton DataStoreManager
+    private val dataStoreManager = DataStoreManager.getInstance()
 
     companion object {
         private const val TAG = "OrderModel"
@@ -28,6 +34,7 @@ class OrderModel {
 
     /**
      * Effettua un ordine e gestisce specifici messaggi di errore dall'API
+     * Salva l'OID e l'UID nel DataStore
      */
     suspend fun order(mid: Int): Order {
         val sid = "zJQhOtMu8IDfH7WymQTdtS5C2yHyUMw0gAlplK8v0DEn8xgrqtkIk3r1p0Cb9Zdg"
@@ -59,8 +66,23 @@ class OrderModel {
                 val errorMessage = parseErrorMessage(errorBody)
                 throw Exception(errorMessage)
             }
+            val order: Order = Json.decodeFromString(Order.serializer(), response.bodyAsText())
 
-            return Json.decodeFromString(Order.serializer(), response.bodyAsText())
+            // Salva l'OID nel DataStore
+            withContext(Dispatchers.IO) {
+                dataStoreManager.saveLastOrder(order.oid.toString())
+                Log.d(TAG, "order() → saved OID ${order.oid} to DataStore")
+
+                // Salviamo anche l'UID nel DataStore
+                dataStoreManager.setUid(order.uid)
+                Log.d(TAG, "order() → saved UID ${order.uid} to DataStore")
+
+                // Recuperiamo immediatamente l'UID dal DataStore e lo logghiamo
+                val retrievedUid = dataStoreManager.getUid()
+                Log.d(TAG, "order() → retrieved UID $retrievedUid from DataStore")
+            }
+
+            return order
         } catch (e: Exception) {
             // Se l'eccezione è già stata gestita con parseErrorMessage, la ripropago
             if (e.message?.startsWith("API Error:") == true) {
@@ -98,8 +120,24 @@ class OrderModel {
     }
 
     suspend fun getOrderStatus(): Order? {
-        val oid = 12345
         val sid = "zJQhOtMu8IDfH7WymQTdtS5C2yHyUMw0gAlplK8v0DEn8xgrqtkIk3r1p0Cb9Zdg"
+        var oid: Int? = null
+
+        // Recupera l'OID dal DataStore
+        val lastOrderStr = dataStoreManager.getLastOrder()
+        oid = lastOrderStr?.toIntOrNull()
+        Log.d(TAG, "getOrderStatus() → retrieved OID $oid from DataStore")
+
+        // Se non è disponibile un OID nel DataStore, usa un valore di default
+        if (oid == null) {
+            oid = 12345
+            Log.d(TAG, "getOrderStatus() → using default OID $oid")
+        }
+
+        // Recupera e logga anche l'UID dal DataStore
+        val storedUid = dataStoreManager.getUid()
+        Log.d(TAG, "getOrderStatus() → retrieved UID $storedUid from DataStore")
+
         val baseUrl = "https://develop.ewlab.di.unimi.it/mc/2425/order/$oid"
 
         val urlBuilder = Uri.parse(baseUrl).buildUpon()
@@ -108,20 +146,20 @@ class OrderModel {
         val completeUrlString = urlBuilder.build().toString()
 
         Log.d(TAG, "getOrderStatus() → endpoint: $completeUrlString")
-
-        return try {
+        try {
             val response = client.get(completeUrlString) {
                 contentType(ContentType.Application.Json)
             }
             if (!response.status.isSuccess()) {
                 Log.e(TAG, "getOrderStatus() → ERRORE ${response.status.value}: ${response.bodyAsText()}")
-                null
+                return null
             } else {
-                Json.decodeFromString(Order.serializer(), response.bodyAsText())
+                val order: Order = Json.decodeFromString(Order.serializer(), response.bodyAsText())
+                return order
             }
         } catch (e: Exception) {
             Log.e(TAG, "getOrderStatus() → exception during GET", e)
-            null
+            return null
         }
     }
 }
