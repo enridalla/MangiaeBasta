@@ -15,7 +15,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.mangiaebasta.Screen
-import com.example.mangiaebasta.viewmodels.OrderInfoUiState
+import com.example.mangiaebasta.models.DetailedMenuItemWithImage
+import com.example.mangiaebasta.models.Profile
 import com.example.mangiaebasta.viewmodels.ProfileViewModel
 
 @Composable
@@ -139,8 +140,8 @@ fun EmptyProfileView(onCompleteProfile: () -> Unit) {
 }
 
 @Composable
-fun OrderSection(orderInfo: OrderInfoUiState?) {
-    ProfileCard("Ordine") {
+fun OrderSection(orderInfo: DetailedMenuItemWithImage?) {
+    ProfileCard("Ultimo Ordine") {
         if (orderInfo == null) {
             Text(
                 text = "Ordine non ancora effettuato",
@@ -152,7 +153,7 @@ fun OrderSection(orderInfo: OrderInfoUiState?) {
             )
         } else {
             ProfileRow("Prezzo:", orderInfo.price.toString() + "€")
-            ProfileRow("Menu ordinato:", orderInfo.menuName)
+            ProfileRow("Menu ordinato:", orderInfo.name)
         }
     }
 }

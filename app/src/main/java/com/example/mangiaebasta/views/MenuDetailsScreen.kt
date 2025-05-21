@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.mangiaebasta.viewmodels.MenuDetailUiState
+import com.example.mangiaebasta.models.DetailedMenuItemWithImage
 import com.example.mangiaebasta.viewmodels.MenuViewModel
 import com.example.mangiaebasta.viewmodels.OrderStatus
 import kotlinx.coroutines.launch
@@ -30,7 +30,7 @@ fun MenuDetailScreen(
         menuViewModel.loadMenu(menuId)
     }
 
-    val menu by menuViewModel.selectedMenuUi.collectAsState()
+    val menu by menuViewModel.selectedMenu.collectAsState()
     val isLoading by menuViewModel.isLoading.collectAsState()
     val orderStatus by menuViewModel.orderStatus.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -108,12 +108,12 @@ private fun ErrorMessage(message: String) {
 
 @Composable
 private fun MenuDetailContent(
-    menu: MenuDetailUiState,
+    menu: DetailedMenuItemWithImage,
     isOrderLoading: Boolean,
     onOrder: (Int) -> Unit
 ) {
     // decodifica Base64 → Bitmap → ImageBitmap
-    val imageBitmap = menu.imageBase64
+    val imageBitmap = menu.image
         ?.let { Base64.decode(it, Base64.DEFAULT) }
         ?.let { bytes -> BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
         ?.asImageBitmap()
@@ -147,7 +147,7 @@ private fun MenuDetailContent(
         ) {
             Text("Prezzo:", style = MaterialTheme.typography.titleMedium)
             Text(
-                menu.priceText,
+                menu.price.toString() + "€",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -160,7 +160,7 @@ private fun MenuDetailContent(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("Consegna:", style = MaterialTheme.typography.titleMedium)
-            Text(menu.deliveryTimeText, style = MaterialTheme.typography.titleMedium)
+            Text("${menu.deliveryTime} min", style = MaterialTheme.typography.titleMedium)
         }
 
         Spacer(Modifier.height(16.dp))

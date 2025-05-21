@@ -4,26 +4,25 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mangiaebasta.models.Profile
 import com.example.mangiaebasta.models.ProfileModel
+import com.example.mangiaebasta.models.DetailedMenuItemWithImage
+import com.example.mangiaebasta.models.OrderModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import com.example.mangiaebasta.models.OrderModel
 
 class ProfileViewModel : ViewModel() {
     private val profileModel = ProfileModel()
     private val orderModel = OrderModel()
 
-    // Utilizziamo direttamente i tipi del modello senza mapping
     private val _profile = MutableStateFlow<Profile?>(null)
     val profile: StateFlow<Profile?> = _profile
 
-    private val _orderInfo = MutableStateFlow<OrderInfoUiState?>(null)
-    val orderInfo: StateFlow<OrderInfoUiState?> = _orderInfo
+    private val _orderInfo = MutableStateFlow<DetailedMenuItemWithImage?>(null)
+    val orderInfo: StateFlow<DetailedMenuItemWithImage?> = _orderInfo
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    // Stato per indicare se il profilo è completo o meno
     private val _isProfileComplete = MutableStateFlow(false)
     val isProfileComplete: StateFlow<Boolean> = _isProfileComplete
 
@@ -33,8 +32,6 @@ class ProfileViewModel : ViewModel() {
             try {
                 val profile = profileModel.getProfileInfo()
                 _profile.value = profile
-
-                // Verifica se il profilo è completo
                 checkProfileCompleteness(profile)
             } catch (e: Exception) {
                 _profile.value = null
@@ -48,12 +45,7 @@ class ProfileViewModel : ViewModel() {
     fun loadOrderInfo() {
         viewModelScope.launch {
             try {
-                //val orderInfo = TODO
-
-                _orderInfo.value = OrderInfoUiState(
-                    price = 10,
-                    menuName = "Menu Italiano"
-                )
+                _orderInfo.value = orderModel.loadLastOrder()
             } catch (e: Exception) {
                 _orderInfo.value = null
             }
@@ -76,7 +68,6 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun checkProfileCompleteness(profile: Profile?): Boolean {
-        // Un profilo è considerato completo se i campi essenziali non sono nulli
         return !(
                 profile?.firstName.isNullOrBlank() &&
                         profile?.lastName.isNullOrBlank() &&

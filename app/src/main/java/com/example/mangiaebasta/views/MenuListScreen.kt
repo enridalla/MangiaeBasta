@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import com.example.mangiaebasta.viewmodels.MenuListItemUiState
+import com.example.mangiaebasta.models.MenuItemWithImage
 import com.example.mangiaebasta.viewmodels.MenuViewModel
 
 @Composable
@@ -47,12 +47,12 @@ fun MenuListScreen(
 
 @Composable
 private fun MenuCard(
-    menu: MenuListItemUiState,
+    menu: MenuItemWithImage,
     onMenuSelected: (Int) -> Unit
 ) {
-    val imageBitmap = menu.imageBase64
-        ?.let { Base64.decode(it, Base64.NO_WRAP) }
-        ?.let { bytes -> BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
+    val imageBitmap = menu.image
+        ?.let { it: String -> Base64.decode(it, Base64.NO_WRAP) }
+        ?.let { bytes: ByteArray -> BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
         ?.asImageBitmap()
 
     Card(
@@ -84,8 +84,8 @@ private fun MenuCard(
                     .padding(top = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(menu.priceText, style = MaterialTheme.typography.titleMedium)
-                Text(menu.deliveryTimeText, style = MaterialTheme.typography.bodySmall)
+                Text("${menu.price}€", style = MaterialTheme.typography.titleMedium)
+                Text("${menu.deliveryTime} min", style = MaterialTheme.typography.bodySmall)
             }
         }
     }

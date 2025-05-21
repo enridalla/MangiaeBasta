@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -49,8 +50,9 @@ class DataStoreManager private constructor(private val applicationContext: Conte
 
     private val LAST_ROUTE_KEY = stringPreferencesKey("last_route")
     private val SID_KEY = stringPreferencesKey("sid")
-    private val LASTORDER_KEY = stringPreferencesKey("last_order")
     private val UID_KEY = intPreferencesKey("uid")
+    private val LAST_ORDER_KEY = stringPreferencesKey("last_order")
+    private val OID_KEY = intPreferencesKey("oid")
 
     // SID
     fun setSid(sid: String?) {
@@ -72,25 +74,30 @@ class DataStoreManager private constructor(private val applicationContext: Conte
         }
     }
 
-    // Versione sincrona per casi d'uso specifici
-    fun getSidBlocking(): String? = runBlocking {
-        getSid()
-    }
-
     // LastOrder
-    suspend fun saveLastOrder(lastOrder: String) {
-        dataStore.edit { preferences ->
-            preferences[LASTORDER_KEY] = lastOrder
-            val savedLastOrder = preferences[LASTORDER_KEY]
-            Log.d(TAG, "New saved LastOrder: $savedLastOrder")
+    suspend fun setLastOrder(menuItem: DetailedMenuItemWithImage) {
+        val jsonString = Json.encodeToString(DetailedMenuItemWithImage.serializer(), menuItem)
+        applicationContext.dataStore.edit { preferences ->
+            preferences[LAST_ORDER_KEY] = jsonString
         }
     }
 
-    suspend fun getLastOrder(): String? {
-        return withContext(Dispatchers.IO) {
-            val preferences = dataStore.data.first()
-            preferences[LASTORDER_KEY]
+    suspend fun getLastOrder(): DetailedMenuItemWithImage? {
+        val preferences = applicationContext.dataStore.data.first()
+        val jsonString = preferences[LAST_ORDER_KEY]
+        return jsonString?.let { Json.decodeFromString(DetailedMenuItemWithImage.serializer(), it) }
+    }
+
+    // OID
+    suspend fun setOID(oid: Int) {
+        applicationContext.dataStore.edit { preferences ->
+            preferences[OID_KEY] = oid
         }
+    }
+
+    suspend fun getOID(): Int? {
+        val preferences = applicationContext.dataStore.data.first()
+        return preferences[OID_KEY]
     }
 
     // UID

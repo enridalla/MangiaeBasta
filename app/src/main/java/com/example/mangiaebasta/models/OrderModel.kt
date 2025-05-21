@@ -32,10 +32,6 @@ class OrderModel {
         private const val TAG = "OrderModel"
     }
 
-    /**
-     * Effettua un ordine e gestisce specifici messaggi di errore dall'API
-     * Salva l'OID e l'UID nel DataStore
-     */
     suspend fun order(mid: Int): Order {
         val sid = "zJQhOtMu8IDfH7WymQTdtS5C2yHyUMw0gAlplK8v0DEn8xgrqtkIk3r1p0Cb9Zdg"
         val location = Location(45.4654, 9.1866)
@@ -68,8 +64,7 @@ class OrderModel {
             }
             val order: Order = Json.decodeFromString(Order.serializer(), response.bodyAsText())
 
-
-            dataStoreManager.saveLastOrder(order.oid.toString())
+            dataStoreManager.setOID(order.oid)
             Log.d(TAG, "order() → saved OID ${order.oid} to DataStore")
 
             return order
@@ -111,18 +106,10 @@ class OrderModel {
 
     suspend fun getOrderStatus(): Order? {
         val sid = "zJQhOtMu8IDfH7WymQTdtS5C2yHyUMw0gAlplK8v0DEn8xgrqtkIk3r1p0Cb9Zdg"
-        var oid: Int? = null
 
         // Recupera l'OID dal DataStore
-        val lastOrderStr = dataStoreManager.getLastOrder()
-        oid = lastOrderStr?.toIntOrNull()
+        val oid = dataStoreManager.getOID()
         Log.d(TAG, "getOrderStatus() → retrieved OID $oid from DataStore")
-
-        // Se non è disponibile un OID nel DataStore, usa un valore di default
-        if (oid == null) {
-            oid = 12345
-            Log.d(TAG, "getOrderStatus() → using default OID $oid")
-        }
 
         // Recupera e logga anche l'UID dal DataStore
         val storedUid = dataStoreManager.getUid()
@@ -152,28 +139,28 @@ class OrderModel {
             return null
         }
     }
+
+    suspend fun saveLastOrder(order: DetailedMenuItemWithImage?) {
+        try {
+            if (order == null) {
+                throw IllegalArgumentException("Invalid order: cannot be null.")
+            }
+
+            dataStoreManager.setLastOrder(order)
+
+            Log.d("setLastOrder", "Last order successfully saved")
+        } catch (e: Exception) {
+            Log.e("setLastOrder", "Error saving last order", e)
+        }
+    }
+
+    suspend fun loadLastOrder(): DetailedMenuItemWithImage? {
+        try {
+            return dataStoreManager.getLastOrder()
+        } catch (e: Exception) {
+            Log.e("getLastOrder", "Error getting last order", e)
+            return null
+        }
+    }
 }
 
-@Serializable
-data class Location(
-    val lat: Double,
-    val lng: Double
-)
-
-@Serializable
-data class Order(
-    val oid: Int,
-    val mid: Int,
-    val uid: Int,
-    val creationTimestamp: String,
-    val status: String,
-    val deliveryLocation: Location,
-    val expectedDeliveryTimestamp: String?,
-    val currentPosition: Location,
-)
-
-@Serializable
-data class DeliveryLocationWithSid(
-    val sid: String,
-    val deliveryLocation: Location
-)
