@@ -68,19 +68,9 @@ class OrderModel {
             }
             val order: Order = Json.decodeFromString(Order.serializer(), response.bodyAsText())
 
-            // Salva l'OID nel DataStore
-            withContext(Dispatchers.IO) {
-                dataStoreManager.saveLastOrder(order.oid.toString())
-                Log.d(TAG, "order() → saved OID ${order.oid} to DataStore")
 
-                // Salviamo anche l'UID nel DataStore
-                dataStoreManager.setUid(order.uid)
-                Log.d(TAG, "order() → saved UID ${order.uid} to DataStore")
-
-                // Recuperiamo immediatamente l'UID dal DataStore e lo logghiamo
-                val retrievedUid = dataStoreManager.getUid()
-                Log.d(TAG, "order() → retrieved UID $retrievedUid from DataStore")
-            }
+            dataStoreManager.saveLastOrder(order.oid.toString())
+            Log.d(TAG, "order() → saved OID ${order.oid} to DataStore")
 
             return order
         } catch (e: Exception) {
