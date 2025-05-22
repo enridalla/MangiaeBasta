@@ -2,78 +2,73 @@ package com.example.mangiaebasta.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.mangiaebasta.models.DetailedMenuItem
-import com.example.mangiaebasta.models.DetailedMenuItemWithImage
-import com.example.mangiaebasta.models.MenuItemWithImage
-import com.example.mangiaebasta.models.MenuModel
-import com.example.mangiaebasta.models.Order
-import kotlinx.coroutines.flow.*
+import com.example.mangiaebasta.models.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import com.example.mangiaebasta.models.OrderModel
-
-// Sealed class per rappresentare il risultato dell'ordine
-sealed class OrderResult {
-    object Success : OrderResult()
-    data class Error(val message: String) : OrderResult()
-}
+import kotlinx.coroutines.withContext
 
 class MenuViewModel : ViewModel() {
+
     private val menuModel = MenuModel()
     private val orderModel = OrderModel()
 
-    // --- STREAM PER LA LISTA ---
+    // --- LISTA MENU ---------------------------------------------------------------------------
     private val _menusUi = MutableStateFlow<List<MenuItemWithImage>>(emptyList())
     val menusUi: StateFlow<List<MenuItemWithImage>> = _menusUi
 
-    // --- STREAM PER IL DETTAGLIO ---
+    // --- DETTAGLIO ----------------------------------------------------------------------------
     private val _selectedMenu = MutableStateFlow<DetailedMenuItemWithImage?>(null)
     val selectedMenu: StateFlow<DetailedMenuItemWithImage?> = _selectedMenu
 
-    private val _isLoading = MutableStateFlow(false)
+    // --- STATO CARICAMENTO --------------------------------------------------------------------
+    private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    // --- STREAM PER IL RISULTATO DELL'ORDINE ---
-    private val _orderResult = MutableSharedFlow<OrderResult>()
-    val orderResult: SharedFlow<OrderResult> = _orderResult
+    init {
+        loadMenus()
+    }
 
-    init { loadMenus() }
-
+    /** Carica la lista dei menu */
     fun loadMenus() = viewModelScope.launch {
         _isLoading.value = true
         try {
-            val menus = menuModel.getMenus()
-            _menusUi.value = menus
-        } catch (e: Exception) {
-            // Gestione degli errori
+            // fetch + immagini in parallelo (vedi MenuModel)
+            _menusUi.value = menuModel.getMenus()
+        } catch (_: Exception) {
             _menusUi.value = emptyList()
         } finally {
             _isLoading.value = false
         }
     }
 
+    /** Carica i dettagli di un singolo menu */
     fun loadMenu(id: Int) = viewModelScope.launch {
+        _selectedMenu.value = null
         _isLoading.value = true
         try {
-            val menu = menuModel.getMenuDetails(id)
-            _selectedMenu.value = menu
-        } catch (e: Exception) {
-            // Gestione degli errori
+            _selectedMenu.value = menuModel.getMenuDetails(id)
+        } catch (_: Exception) {
             _selectedMenu.value = null
         } finally {
             _isLoading.value = false
         }
     }
 
-    fun orderMenu(menuId: Int) = viewModelScope.launch {
+    /** Effettua l’ordine e restituisce un eventuale messaggio d’errore */
+    suspend fun orderMenu(menuId: Int): String? {
         _isLoading.value = true
-        try {
-            val order = orderModel.order(menuId)
+        return try {
+            orderModel.order(menuId)
             orderModel.saveLastOrder(_selectedMenu.value)
-            _orderResult.emit(OrderResult.Success)
+            null                                        // Successo
         } catch (e: Exception) {
-            // Gestione degli specifici messaggi di errore dall'API
-            val errorMsg = e.message?.replace("API Error: ", "") ?: "Si è verificato un errore sconosciuto"
-            _orderResult.emit(OrderResult.Error(errorMsg))
+            // Trasforma “API Error: …” in messaggio user-friendly
+            e.message?.replace("API Error: ", "")
+                ?: "Si è verificato un errore sconosciuto"
         } finally {
             _isLoading.value = false
         }
