@@ -32,32 +32,8 @@ fun MenuDetailScreen(
 
     val menu by menuViewModel.selectedMenu.collectAsState()
     val isLoading by menuViewModel.isLoading.collectAsState()
-    val orderStatus by menuViewModel.orderStatus.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-
-    // Mostra messaggi di successo o errore tramite snackbar
-    LaunchedEffect(orderStatus) {
-        orderStatus?.let {
-            when (it) {
-                is OrderStatus.Success -> {
-                    snackbarHostState.showSnackbar(
-                        message = "Ordine #${it.order.oid} effettuato con successo!",
-                        duration = SnackbarDuration.Short
-                    )
-                    menuViewModel.resetOrderStatus()
-                }
-                is OrderStatus.Error -> {
-                    snackbarHostState.showSnackbar(
-                        message = it.message,
-                        duration = SnackbarDuration.Long,
-                        withDismissAction = true
-                    )
-                    menuViewModel.resetOrderStatus()
-                }
-            }
-        }
-    }
 
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal),
@@ -71,7 +47,7 @@ fun MenuDetailScreen(
             contentAlignment = Alignment.TopCenter
         ) {
             if (isLoading) {
-                CircularProgressIndicator()
+                LoadingScreen()
             } else if (menu == null) {
                 ErrorMessage("Impossibile caricare i dettagli del menu")
             } else {

@@ -39,7 +39,7 @@ fun ProfileEditScreen(
                 .padding(16.dp)
         ) {
             if (isLoading || profile == null) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                LoadingScreen()
             } else {
                 val currentProfile = profile!!
 

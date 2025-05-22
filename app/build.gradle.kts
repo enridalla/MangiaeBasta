@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 
     id("kotlinx-serialization")
+    id("com.google.devtools.ksp")
+    id("kotlin-kapt")
 }
 
 android {
@@ -42,19 +44,14 @@ android {
 }
 
 dependencies {
-    // --- Room (Database) ---
-    val room_version = "2.7.1"
+    // --- Room --- CON KSP
+    val room_version = "2.6.1"
     implementation("androidx.room:room-runtime:$room_version")
-    implementation("androidx.room:room-ktx:$room_version")               // Coroutines support
-    annotationProcessor("androidx.room:room-compiler:$room_version")     // Java annotation processor
-    // (Opzionale) RxJava / Guava / Paging
-    implementation("androidx.room:room-rxjava2:$room_version")
-    implementation("androidx.room:room-rxjava3:$room_version")
-    implementation("androidx.room:room-guava:$room_version")
-    implementation("androidx.room:room-paging:$room_version")
-    testImplementation("androidx.room:room-testing:$room_version")      // Test helpers
+    implementation("androidx.room:room-ktx:$room_version")
+    ksp("androidx.room:room-compiler:$room_version")
+    testImplementation("androidx.room:room-testing:$room_version")
 
-    // --- DataStore (Preferences) ---
+    // --- DataStore ---
     implementation("androidx.datastore:datastore-preferences:1.1.6")
     implementation("androidx.datastore:datastore-preferences-rxjava2:1.1.6")
     implementation("androidx.datastore:datastore-preferences-rxjava3:1.1.6")
@@ -68,10 +65,10 @@ dependencies {
     implementation("androidx.compose.ui:ui:1.6.0")
     implementation("androidx.compose.foundation:foundation:1.6.0")
     implementation("androidx.compose.ui:ui-text:1.6.0")
-    implementation(libs.androidx.ui)                // Compose UI tooling
+    implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
-    debugImplementation(libs.androidx.ui.tooling)   // Preview & inspection
+    debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
     // --- Material3 & Icons ---

@@ -58,9 +58,7 @@ fun ProfileInfoScreen(
         Spacer(Modifier.height(20.dp))
 
         if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
+            LoadingScreen()
         } else if (!profileViewModel.checkProfileCompleteness(profile)) {
             // Mostra la schermata di completamento profilo
             EmptyProfileView(onCompleteProfile = {

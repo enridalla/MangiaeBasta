@@ -27,9 +27,7 @@ fun MenuListScreen(
     val isLoading by menuViewModel.isLoading.collectAsState()
 
     if (isLoading) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
+        LoadingScreen()
         return
     }
 
@@ -88,5 +86,15 @@ private fun MenuCard(
                 Text("${menu.deliveryTime} min", style = MaterialTheme.typography.bodySmall)
             }
         }
+    }
+}
+
+@Composable
+fun LoadingScreen() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
     }
 }

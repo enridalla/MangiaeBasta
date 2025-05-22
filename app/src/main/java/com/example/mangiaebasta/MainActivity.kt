@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.example.mangiaebasta.models.DataStoreManager
+import com.example.mangiaebasta.models.StorageManager
 import com.example.mangiaebasta.ui.theme.MangiaEBastaTheme
 
 class MainActivity : ComponentActivity() {
@@ -18,12 +19,13 @@ class MainActivity : ComponentActivity() {
 
         // Inizializza DataStoreManager
         DataStoreManager.initialize(applicationContext)
+
+        // Inizializza StorageManager
+        StorageManager.initialize(applicationContext)
+
         val startParams = intent.extras
 
         enableEdgeToEdge()
-
-
-
 
         setContent {
             MangiaEBastaTheme {

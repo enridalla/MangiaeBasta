@@ -17,6 +17,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
+import com.example.mangiaebasta.models.StorageManager
 
 class MenuModel {
     val baseUrl = "https://develop.ewlab.di.unimi.it/mc/2425/menu"
@@ -61,8 +62,7 @@ class MenuModel {
                 Log.d(TAG, "Elaborazione menu item: ${menuItem.mid} - ${menuItem.name}")
                 try {
                     Log.d(TAG, "Caricamento immagine per menu ${menuItem.mid}")
-                    val imageBase64 = getMenuImage(menuItem.mid)
-                    Log.d(TAG, "Immagine caricata per ${menuItem.mid}, lunghezza: ${imageBase64?.length ?: 0}")
+                    val imageBase64 = getMenuImage(menuItem.mid, menuItem.imageVersion)
 
                     MenuItemWithImage(
                         mid = menuItem.mid,
@@ -97,21 +97,43 @@ class MenuModel {
         }
     }
 
-    suspend fun getMenuImage(mid: Int): String {
+    suspend fun getMenuImage(mid: Int, imageVersion: Int): String? {
+        // Controlla se l'immagine è già presente nello storage
+        StorageManager.getMenuImageBase64(mid, imageVersion)?.let { it: String ->
+            if (it.isNotEmpty()) {
+                Log.d(TAG, "Immagine per menu $mid trovata nello storage")
+                return it
+            }
+        }
+
+        // Se l'immagine non è presente nello storage, la recuperiamo dal server
         val url = Uri.parse("$baseUrl/$mid/image").buildUpon()
             .appendQueryParameter("sid", sid)
             .appendQueryParameter("mid", mid.toString())
             .build()
             .toString()
 
-        val response: HttpResponse = client.get(url)
-        if (!response.status.isSuccess()) {
-            val err = response.bodyAsText()
-            throw Exception("Failed to fetch menu image: $err")
-        }
+        try {
+            val response: HttpResponse = client.get(url)
+            if (!response.status.isSuccess()) {
+                val err = response.bodyAsText()
+                Log.e(TAG, "Failed to fetch menu image: $err")
+                return null
+            }
 
-        val base64Resp: Base64Response = response.body()
-        return base64Resp.base64
+            // Deserialize as Base64Response object instead of String
+            val base64Response: Base64Response = response.body()
+
+            // Save the image to storage
+            StorageManager.saveMenuImage(mid, base64Response.base64, imageVersion)
+
+            Log.d(TAG, "Successfully fetched and saved image for menu $mid")
+            return base64Response.base64
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching image for menu $mid: ${e.message}", e)
+            return null
+        }
     }
 
     suspend fun getMenuDetails(mid: Int): DetailedMenuItemWithImage {
@@ -142,8 +164,7 @@ class MenuModel {
 
             try {
                 Log.d(TAG, "Caricamento immagine per dettaglio menu $mid")
-                val imageBase64 = getMenuImage(menuItem.mid)
-                Log.d(TAG, "Immagine caricata per dettaglio menu $mid, lunghezza: ${imageBase64?.length ?: 0}")
+                val imageBase64 = getMenuImage(menuItem.mid, menuItem.imageVersion)
 
                 return DetailedMenuItemWithImage(
                     mid = menuItem.mid,
@@ -176,4 +197,3 @@ class MenuModel {
         }
     }
 }
-
