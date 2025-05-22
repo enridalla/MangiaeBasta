@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.mangiaebasta.models.DetailedMenuItemWithImage
 import com.example.mangiaebasta.viewmodels.MenuViewModel
+import com.example.mangiaebasta.viewmodels.OrderResult
 import kotlinx.coroutines.launch
 
 @Composable
@@ -34,6 +35,26 @@ fun MenuDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    // Gestione del risultato dell'ordine
+    LaunchedEffect(Unit) {
+        menuViewModel.orderResult.collect { result ->
+            when (result) {
+                is OrderResult.Success -> {
+                    snackbarHostState.showSnackbar(
+                        message = "Ordine effettuato con successo!",
+                        duration = SnackbarDuration.Short
+                    )
+                }
+                is OrderResult.Error -> {
+                    snackbarHostState.showSnackbar(
+                        message = result.message,
+                        duration = SnackbarDuration.Long
+                    )
+                }
+            }
+        }
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -45,7 +66,7 @@ fun MenuDetailScreen(
                 .padding(padding),
             contentAlignment = Alignment.TopCenter
         ) {
-            if (isLoading) {
+            if (isLoading && menu == null) {
                 LoadingScreen()
             } else if (menu == null) {
                 ErrorMessage("Impossibile caricare i dettagli del menu")

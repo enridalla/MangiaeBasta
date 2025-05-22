@@ -11,6 +11,12 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import com.example.mangiaebasta.models.OrderModel
 
+// Sealed class per rappresentare il risultato dell'ordine
+sealed class OrderResult {
+    object Success : OrderResult()
+    data class Error(val message: String) : OrderResult()
+}
+
 class MenuViewModel : ViewModel() {
     private val menuModel = MenuModel()
     private val orderModel = OrderModel()
@@ -25,6 +31,10 @@ class MenuViewModel : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    // --- STREAM PER IL RISULTATO DELL'ORDINE ---
+    private val _orderResult = MutableSharedFlow<OrderResult>()
+    val orderResult: SharedFlow<OrderResult> = _orderResult
 
     init { loadMenus() }
 
@@ -59,9 +69,11 @@ class MenuViewModel : ViewModel() {
         try {
             val order = orderModel.order(menuId)
             orderModel.saveLastOrder(_selectedMenu.value)
+            _orderResult.emit(OrderResult.Success)
         } catch (e: Exception) {
             // Gestione degli specifici messaggi di errore dall'API
             val errorMsg = e.message?.replace("API Error: ", "") ?: "Si è verificato un errore sconosciuto"
+            _orderResult.emit(OrderResult.Error(errorMsg))
         } finally {
             _isLoading.value = false
         }
