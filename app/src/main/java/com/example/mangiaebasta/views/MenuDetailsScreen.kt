@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.mangiaebasta.models.DetailedMenuItemWithImage
 import com.example.mangiaebasta.viewmodels.MenuViewModel
-import com.example.mangiaebasta.viewmodels.OrderStatus
 import kotlinx.coroutines.launch
 
 @Composable

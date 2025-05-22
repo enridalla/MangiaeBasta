@@ -26,10 +26,6 @@ class MenuViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    // --- STREAM PER LO STATO DELL'ORDINE ---
-    private val _orderStatus = MutableStateFlow<OrderStatus?>(null)
-    val orderStatus: StateFlow<OrderStatus?> = _orderStatus
-
     init { loadMenus() }
 
     fun loadMenus() = viewModelScope.launch {
@@ -60,32 +56,14 @@ class MenuViewModel : ViewModel() {
 
     fun orderMenu(menuId: Int) = viewModelScope.launch {
         _isLoading.value = true
-        _orderStatus.value = null // Reset dello stato precedente
         try {
             val order = orderModel.order(menuId)
             orderModel.saveLastOrder(_selectedMenu.value)
-            if (order != null) {
-                _orderStatus.value = OrderStatus.Success(order)
-            } else {
-                _orderStatus.value = OrderStatus.Error("Non è stato possibile completare l'ordine")
-            }
         } catch (e: Exception) {
             // Gestione degli specifici messaggi di errore dall'API
             val errorMsg = e.message?.replace("API Error: ", "") ?: "Si è verificato un errore sconosciuto"
-            _orderStatus.value = OrderStatus.Error(errorMsg)
         } finally {
             _isLoading.value = false
         }
     }
-
-    // Resetta lo stato dell'ordine quando necessario
-    fun resetOrderStatus() {
-        _orderStatus.value = null
-    }
-}
-
-// Stato dell'ordine
-sealed class OrderStatus {
-    data class Success(val order: Order) : OrderStatus()
-    data class Error(val message: String) : OrderStatus()
 }

@@ -23,9 +23,6 @@ class ProfileViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    private val _isProfileComplete = MutableStateFlow(false)
-    val isProfileComplete: StateFlow<Boolean> = _isProfileComplete
-
     fun loadProfile() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -35,7 +32,6 @@ class ProfileViewModel : ViewModel() {
                 checkProfileCompleteness(profile)
             } catch (e: Exception) {
                 _profile.value = null
-                _isProfileComplete.value = false
             } finally {
                 _isLoading.value = false
             }
