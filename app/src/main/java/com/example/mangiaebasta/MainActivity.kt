@@ -19,7 +19,6 @@ class MainActivity : ComponentActivity() {
 
         // Inizializza DataStoreManager
         DataStoreManager.initialize(applicationContext)
-
         // Inizializza StorageManager
         StorageManager.initialize(applicationContext)
 

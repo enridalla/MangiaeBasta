@@ -18,12 +18,13 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
 import com.example.mangiaebasta.models.StorageManager
+import com.example.mangiaebasta.models.ProfileModel
 
 class MenuModel {
     val baseUrl = "https://develop.ewlab.di.unimi.it/mc/2425/menu"
-    private val sid = "Qx4f16AFHgPUFe2RG4gXVnVPbkf95zJ8Ih7TIifkKK7a73yn99rJ48kxVDi04qyJ"
     private val defaultLocation = Location(45.4654, 9.1866)
     private val TAG = "MenuModel"
+    private val profileModel = ProfileModel()
 
     private val client = HttpClient(Android) {
         install(ContentNegotiation) {
@@ -34,6 +35,7 @@ class MenuModel {
     suspend fun getMenus(): List<MenuItemWithImage> {
         Log.d(TAG, "Iniziando getMenus()")
         val url = Uri.parse(baseUrl)
+        val sid = profileModel.getSid()
 
         val completeUrlString = url.buildUpon()
             .appendQueryParameter("sid", sid)
@@ -106,6 +108,8 @@ class MenuModel {
             }
         }
 
+        val sid = profileModel.getSid()
+
         // Se l'immagine non è presente nello storage, la recuperiamo dal server
         val url = Uri.parse("$baseUrl/$mid/image").buildUpon()
             .appendQueryParameter("sid", sid)
@@ -139,6 +143,7 @@ class MenuModel {
     suspend fun getMenuDetails(mid: Int): DetailedMenuItemWithImage {
         Log.d(TAG, "Iniziando getMenuDetails() per menu $mid")
         val url = Uri.parse("$baseUrl/$mid")
+        val sid = profileModel.getSid()
 
         val completeUrlString = url.buildUpon()
             .appendQueryParameter("sid", sid)

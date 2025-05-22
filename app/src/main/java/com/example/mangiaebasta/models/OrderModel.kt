@@ -25,15 +25,17 @@ class OrderModel {
         }
     }
 
-    // Utilizziamo il singleton DataStoreManager
+    // singleton DataStoreManager
     private val dataStoreManager = DataStoreManager.getInstance()
+
+    val profileModel = ProfileModel()
 
     companion object {
         private const val TAG = "OrderModel"
     }
 
     suspend fun order(mid: Int): Order {
-        val sid = "zJQhOtMu8IDfH7WymQTdtS5C2yHyUMw0gAlplK8v0DEn8xgrqtkIk3r1p0Cb9Zdg"
+        val sid = profileModel.getSid()
         val location = Location(45.4654, 9.1866)
         val baseUrl = "https://develop.ewlab.di.unimi.it/mc/2425/menu/$mid/buy"
         val urlBuilder = Uri.parse(baseUrl).buildUpon()
@@ -43,7 +45,7 @@ class OrderModel {
         Log.d(TAG, "order() → endpoint: $completeUrlString")
 
         val delivery = DeliveryLocationWithSid(
-            sid = sid,
+            sid = sid!!,
             deliveryLocation = location
         )
         Log.d(TAG, "order() → payload: $delivery")
@@ -105,7 +107,7 @@ class OrderModel {
     }
 
     suspend fun getOrderStatus(): Order? {
-        val sid = "zJQhOtMu8IDfH7WymQTdtS5C2yHyUMw0gAlplK8v0DEn8xgrqtkIk3r1p0Cb9Zdg"
+        val sid = profileModel.getSid()
 
         // Recupera l'OID dal DataStore
         val oid = dataStoreManager.getOID()

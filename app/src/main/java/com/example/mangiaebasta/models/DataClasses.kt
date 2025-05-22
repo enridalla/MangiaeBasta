@@ -78,3 +78,33 @@ data class DeliveryLocationWithSid(
     val sid: String,
     val deliveryLocation: Location
 )
+
+@Serializable
+data class Profile(
+    val firstName: String?,
+    val lastName: String?,
+    val cardFullName: String?,
+    val cardNumber: Long?,
+    val cardExpireMonth: Int?,
+    val cardExpireYear: Int?,
+    val cardCVV: Int?,
+    val uid: Int,
+)
+
+@Serializable
+data class User(
+    val uid: Int,
+    val sid: String
+)
+
+@Serializable
+data class ProfileToUpdate(
+    val firstName: String,
+    val lastName: String,
+    val cardFullName: String,
+    val cardNumber: String,
+    val cardExpireMonth: String,
+    val cardExpireYear: String,
+    val cardCVV: String,
+    val sid: String
+)
