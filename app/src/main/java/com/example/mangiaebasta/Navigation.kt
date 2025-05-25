@@ -28,6 +28,7 @@ import com.example.mangiaebasta.viewmodels.ProfileViewModel
 import com.example.mangiaebasta.views.*
 import com.example.mangiaebasta.components.TopNavigationBar
 import com.example.mangiaebasta.components.BottomNavigationBar
+import com.example.mangiaebasta.viewmodels.OrderViewModel
 
 sealed class Screen(
     val route: String,
@@ -108,6 +109,7 @@ private fun NavGraph(
 ) {
     val menuVM: MenuViewModel = viewModel()
     val profileVM: ProfileViewModel = viewModel()
+    val orderVM: OrderViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -119,7 +121,7 @@ private fun NavGraph(
                 navController.navigate(Screen.MenuDetail.createRoute(selectedId))
             }
         }
-        composable(Screen.Order.route) { OrderScreen() }
+        composable(Screen.Order.route) { OrderScreen(navController, orderVM) }
         composable(Screen.ProfileInfo.route) { ProfileInfoScreen(navController, profileVM) }
         composable(Screen.ProfileEdit.route) { ProfileEditScreen(navController, profileVM) }
         composable(

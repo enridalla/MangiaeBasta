@@ -58,7 +58,8 @@ data class Base64Response(
 @Serializable
 data class Location(
     val lat: Double,
-    val lng: Double
+    val lng: Double,
+    val deliveryTimestamp: String? = null // Add this optional field
 )
 
 @Serializable
@@ -69,7 +70,7 @@ data class Order(
     val creationTimestamp: String,
     val status: String,
     val deliveryLocation: Location,
-    val expectedDeliveryTimestamp: String?,
+    val expectedDeliveryTimestamp: String? = null,
     val currentPosition: Location,
 )
 

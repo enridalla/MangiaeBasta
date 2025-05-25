@@ -21,7 +21,11 @@ class OrderModel {
 
     private val client = HttpClient(Android) {
         install(ContentNegotiation) {
-            json(Json { ignoreUnknownKeys = true })
+            json(Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+                encodeDefaults = false
+            })
         }
     }
 
@@ -64,7 +68,14 @@ class OrderModel {
                 val errorMessage = parseErrorMessage(errorBody)
                 throw Exception(errorMessage)
             }
-            val order: Order = Json.decodeFromString(Order.serializer(), response.bodyAsText())
+
+            val responseBody = response.bodyAsText()
+            Log.d(TAG, "order() → response: $responseBody")
+
+            val order: Order = Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            }.decodeFromString(Order.serializer(), responseBody)
 
             dataStoreManager.setOID(order.oid)
             Log.d(TAG, "order() → saved OID ${order.oid} to DataStore")
@@ -107,33 +118,52 @@ class OrderModel {
     }
 
     suspend fun getOrderStatus(): Order? {
-        val sid = profileModel.getSid()
+        return try {
+            val sid = profileModel.getSid()
+            if (sid == null) {
+                Log.w(TAG, "getOrderStatus() → SID non disponibile")
+                return null
+            }
 
-        // Recupera l'OID dal DataStore
-        val oid = dataStoreManager.getOID()
-        Log.d(TAG, "getOrderStatus() → retrieved OID $oid from DataStore")
+            // Recupera l'OID dal DataStore
+            val oid = dataStoreManager.getOID()
+            if (oid == null) {
+                Log.w(TAG, "getOrderStatus() → OID non disponibile nel DataStore")
+                return null
+            }
 
-        // Recupera e logga anche l'UID dal DataStore
-        val storedUid = dataStoreManager.getUid()
-        Log.d(TAG, "getOrderStatus() → retrieved UID $storedUid from DataStore")
+            Log.d(TAG, "getOrderStatus() → retrieved OID $oid from DataStore")
 
-        val baseUrl = "https://develop.ewlab.di.unimi.it/mc/2425/order/$oid"
+            // Recupera e logga anche l'UID dal DataStore
+            val storedUid = dataStoreManager.getUid()
+            Log.d(TAG, "getOrderStatus() → retrieved UID $storedUid from DataStore")
 
-        val urlBuilder = Uri.parse(baseUrl).buildUpon()
-            .appendQueryParameter("oid", oid.toString())
-            .appendQueryParameter("sid", sid)
-        val completeUrlString = urlBuilder.build().toString()
+            val baseUrl = "https://develop.ewlab.di.unimi.it/mc/2425/order/$oid"
 
-        Log.d(TAG, "getOrderStatus() → endpoint: $completeUrlString")
-        try {
+            val urlBuilder = Uri.parse(baseUrl).buildUpon()
+                .appendQueryParameter("oid", oid.toString())
+                .appendQueryParameter("sid", sid)
+            val completeUrlString = urlBuilder.build().toString()
+
+            Log.d(TAG, "getOrderStatus() → endpoint: $completeUrlString")
+
             val response = client.get(completeUrlString) {
                 contentType(ContentType.Application.Json)
             }
+
             if (!response.status.isSuccess()) {
                 Log.e(TAG, "getOrderStatus() → ERRORE ${response.status.value}: ${response.bodyAsText()}")
                 return null
             } else {
-                val order: Order = Json.decodeFromString(Order.serializer(), response.bodyAsText())
+                val responseBody = response.bodyAsText()
+                Log.d(TAG, "getOrderStatus() → raw response: $responseBody")
+
+                val order: Order = Json {
+                    ignoreUnknownKeys = true
+                    isLenient = true
+                }.decodeFromString(Order.serializer(), responseBody)
+
+                Log.d(TAG, "getOrderStatus() → ordine recuperato con successo, stato: ${order.status}")
                 return order
             }
         } catch (e: Exception) {
@@ -157,12 +187,17 @@ class OrderModel {
     }
 
     suspend fun loadLastOrder(): DetailedMenuItemWithImage? {
-        try {
-            return dataStoreManager.getLastOrder()
+        return try {
+            val lastOrder = dataStoreManager.getLastOrder()
+            if (lastOrder != null) {
+                Log.d(TAG, "loadLastOrder() → ultimo ordine caricato: ${lastOrder.name}")
+            } else {
+                Log.d(TAG, "loadLastOrder() → nessun ultimo ordine trovato")
+            }
+            lastOrder
         } catch (e: Exception) {
             Log.e("getLastOrder", "Error getting last order", e)
             return null
         }
     }
 }
-
