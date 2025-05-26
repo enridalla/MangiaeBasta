@@ -24,6 +24,7 @@ import com.example.mangiaebasta.viewmodels.AppViewModel
 import com.example.mangiaebasta.views.LoadingScreen
 import com.example.mangiaebasta.views.PermissionDeniedScreen
 import com.example.mangiaebasta.views.PermissionExplanationScreen
+import com.example.mangiaebasta.models.PositionManager
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,6 +34,8 @@ class MainActivity : ComponentActivity() {
         DataStoreManager.initialize(applicationContext)
         // Inizializza StorageManager
         StorageManager.initialize(applicationContext)
+
+        PositionManager.initialize(this)
 
         val startParams = intent.extras
 

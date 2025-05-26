@@ -1,32 +1,37 @@
 package com.example.mangiaebasta.viewmodels
 
+import android.location.LocationManager
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mangiaebasta.models.DetailedMenuItemWithImage
 import com.example.mangiaebasta.models.Order
 import com.example.mangiaebasta.models.OrderModel
+import com.example.mangiaebasta.models.PositionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.*
+import java.time.Duration
+import java.time.Instant
+import java.time.format.DateTimeParseException
 
 class OrderViewModel : ViewModel() {
 
     companion object {
         private const val TAG = "OrderViewModel"
+        private const val REFRESH_INTERVAL_MS = 5000L // 5 secondi
     }
 
     private val orderModel = OrderModel()
+    private val positionManager = PositionManager.getInstance()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
 
     private val _orderStatus = MutableStateFlow<Order?>(null)
     val orderStatus: StateFlow<Order?> = _orderStatus.asStateFlow()
@@ -37,15 +42,33 @@ class OrderViewModel : ViewModel() {
     private val _userLocation = MutableStateFlow<android.location.Location?>(null)
     val userLocation: StateFlow<android.location.Location?> = _userLocation.asStateFlow()
 
+    private val _isRefreshingAutomatically = MutableStateFlow(false)
+    val isRefreshingAutomatically: StateFlow<Boolean> = _isRefreshingAutomatically.asStateFlow()
+
     init {
         loadOrderData()
         loadUserLocation()
     }
 
+    private fun loadUserLocation() {
+        viewModelScope.launch {
+            try {
+                val location = positionManager.getLocation()
+                _userLocation.value = location
+                if (location != null) {
+                    Log.d(TAG, "Posizione utente caricata: lat=${location.latitude}, lng=${location.longitude}")
+                } else {
+                    Log.w(TAG, "Impossibile ottenere la posizione utente")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Errore nel caricamento della posizione utente", e)
+            }
+        }
+    }
+
     private fun loadOrderData() {
         viewModelScope.launch {
             _isLoading.value = true
-            _error.value = null
 
             try {
                 Log.d(TAG, "Inizio caricamento dati ordine...")
@@ -60,6 +83,11 @@ class OrderViewModel : ViewModel() {
                 Log.d(TAG, "Stato ordine caricato: ${orderStatusData?.status ?: "null"}")
                 _orderStatus.value = orderStatusData
 
+                // Avvia il refresh automatico se l'ordine è attivo
+                if (orderStatusData?.status == "ON_DELIVERY" && !_isRefreshingAutomatically.value) {
+                    startAutomaticRefresh()
+                }
+
                 // Se non c'è né ultimo ordine né stato ordine, non è un errore
                 // La UI gestirà il caso con EmptyOrderScreen
                 if (lastOrderData == null && orderStatusData == null) {
@@ -68,7 +96,6 @@ class OrderViewModel : ViewModel() {
 
             } catch (e: Exception) {
                 Log.e(TAG, "Errore nel caricamento dei dati dell'ordine", e)
-                _error.value = "Errore nel caricamento dell'ordine: ${e.message}"
             } finally {
                 _isLoading.value = false
                 Log.d(TAG, "Caricamento dati ordine completato")
@@ -76,46 +103,61 @@ class OrderViewModel : ViewModel() {
         }
     }
 
-    private fun loadUserLocation() {
+    private fun startAutomaticRefresh() {
+        if (_isRefreshingAutomatically.value) {
+            Log.d(TAG, "Refresh automatico già attivo")
+            return
+        }
+
+        Log.d(TAG, "Avvio refresh automatico ogni ${REFRESH_INTERVAL_MS}ms")
+        _isRefreshingAutomatically.value = true
+
         viewModelScope.launch {
-            try {
-                // For now, we'll skip location loading since it requires Context
-                // If you need user location, you can implement it differently
-                // or pass it from the UI layer when needed
-                Log.d(TAG, "User location loading skipped")
-            } catch (e: Exception) {
-                Log.e(TAG, "Errore nel caricamento della posizione utente", e)
+            while (_isRefreshingAutomatically.value) {
+                delay(REFRESH_INTERVAL_MS)
+
+                try {
+                    Log.d(TAG, "Refresh automatico - controllo stato ordine")
+                    val currentOrderStatus = orderModel.getOrderStatus()
+                    _orderStatus.value = currentOrderStatus
+
+                    // Aggiorna anche la posizione utente
+                    val location = positionManager.getLocation()
+                    _userLocation.value = location
+
+                    // Se l'ordine non è più in consegna, ferma il refresh
+                    if (currentOrderStatus?.status != "ON_DELIVERY") {
+                        Log.d(TAG, "Ordine non più in consegna, fermo refresh automatico")
+                        stopAutomaticRefresh()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Errore durante refresh automatico", e)
+                }
             }
         }
     }
 
+    private fun stopAutomaticRefresh() {
+        Log.d(TAG, "Fermo refresh automatico")
+        _isRefreshingAutomatically.value = false
+    }
+
     fun refreshOrderData() {
-        Log.d(TAG, "Refresh dati ordine richiesto")
+        Log.d(TAG, "Refresh dati ordine richiesto manualmente")
         loadOrderData()
     }
 
     fun getEstimatedTime(): String {
-        val order = _orderStatus.value ?: return "N/A"
+        val isoTimestamp = _orderStatus.value?.expectedDeliveryTimestamp ?: return "N/A"
 
         return try {
-            val deliveryTime = order.expectedDeliveryTimestamp
-            if (deliveryTime != null) {
-                val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-                val deliveryDate = format.parse(deliveryTime)
-                val currentTime = Date()
+            val deliveryInstant = Instant.parse(isoTimestamp)
+            val nowInstant = Instant.now()
 
-                if (deliveryDate != null && deliveryDate.after(currentTime)) {
-                    val diffInMillis = deliveryDate.time - currentTime.time
-                    val diffInMinutes = diffInMillis / (1000 * 60)
-                    "${diffInMinutes.toInt()} min"
-                } else {
-                    "In arrivo"
-                }
-            } else {
-                "Tempo non disponibile"
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Errore nel calcolo del tempo stimato", e)
+            val minutes = Duration.between(nowInstant, deliveryInstant).toMinutes()
+            if (minutes <= 0) "0 min" else "$minutes min"
+        } catch (e: DateTimeParseException) {
+            Log.e(TAG, "Errore nel parsing del timestamp", e)
             "N/A"
         }
     }
@@ -135,78 +177,6 @@ class OrderViewModel : ViewModel() {
         return earthRadius * c
     }
 
-    fun getPathCoordinates(): List<Pair<Double, Double>> {
-        val order = _orderStatus.value
-
-        return if (order?.status == "ON_DELIVERY") {
-            listOf(
-                Pair(order.currentPosition.lat, order.currentPosition.lng),
-                Pair(order.deliveryLocation.lat, order.deliveryLocation.lng)
-            )
-        } else {
-            emptyList()
-        }
-    }
-
-    fun getCenterCoordinates(): Pair<Double, Double>? {
-        val order = _orderStatus.value ?: return null
-        val lastOrderData = _lastOrder.value ?: return null
-
-        return when (order.status) {
-            "ON_DELIVERY" -> {
-                // Calcola il centro tra le tre posizioni: ristorante, drone e destinazione
-                val restaurantLat = lastOrderData.location.lat
-                val restaurantLng = lastOrderData.location.lng
-                val droneLat = order.currentPosition.lat
-                val droneLng = order.currentPosition.lng
-                val deliveryLat = order.deliveryLocation.lat
-                val deliveryLng = order.deliveryLocation.lng
-
-                val centerLat = (restaurantLat + droneLat + deliveryLat) / 3
-                val centerLng = (restaurantLng + droneLng + deliveryLng) / 3
-
-                Pair(centerLat, centerLng)
-            }
-            else -> {
-                // Per ordini consegnati, centra sulla destinazione
-                Pair(order.deliveryLocation.lat, order.deliveryLocation.lng)
-            }
-        }
-    }
-
-    fun getMapZoomLevel(): Double {
-        val order = _orderStatus.value ?: return 12.0
-        val lastOrderData = _lastOrder.value ?: return 12.0
-
-        return when (order.status) {
-            "ON_DELIVERY" -> {
-                // Calcola la distanza massima tra i punti per determinare il zoom
-                val restaurantLat = lastOrderData.location.lat
-                val restaurantLng = lastOrderData.location.lng
-                val droneLat = order.currentPosition.lat
-                val droneLng = order.currentPosition.lng
-                val deliveryLat = order.deliveryLocation.lat
-                val deliveryLng = order.deliveryLocation.lng
-
-                val dist1 = calculateDistance(restaurantLat, restaurantLng, droneLat, droneLng)
-                val dist2 = calculateDistance(droneLat, droneLng, deliveryLat, deliveryLng)
-                val dist3 = calculateDistance(restaurantLat, restaurantLng, deliveryLat, deliveryLng)
-
-                val maxDistance = maxOf(dist1, dist2, dist3)
-
-                // Converte la distanza in livello di zoom appropriato
-                when {
-                    maxDistance > 50 -> 8.0
-                    maxDistance > 20 -> 10.0
-                    maxDistance > 5 -> 12.0
-                    maxDistance > 1 -> 14.0
-                    else -> 16.0
-                }
-            }
-            else -> 14.0
-        }
-    }
-
     fun formatDeliveryTime(timestamp: String?): String {
         return try {
             if (timestamp != null) {
@@ -221,5 +191,30 @@ class OrderViewModel : ViewModel() {
             Log.e(TAG, "Errore nel formato dell'ora di consegna", e)
             "N/A"
         }
+    }
+
+    fun getOrderStatusMessage(): String {
+        val order = _orderStatus.value ?: return "Stato sconosciuto"
+
+        return when (order.status) {
+            "ON_DELIVERY" -> "Il tuo ordine è in viaggio! Il drone sta arrivando alla tua posizione."
+            "COMPLETED" -> "Ordine consegnato con successo! Speriamo ti sia piaciuto il tuo pasto."
+            else -> "Stato ordine: ${order.status}"
+        }
+    }
+
+    fun getOrderStatusColor(): androidx.compose.ui.graphics.Color {
+        val order = _orderStatus.value ?: return androidx.compose.ui.graphics.Color.Gray
+
+        return when (order.status) {
+            "ON_DELIVERY" -> androidx.compose.ui.graphics.Color(0xFF2196F3) // Blu
+            "COMPLETED" -> androidx.compose.ui.graphics.Color(0xFF4CAF50) // Verde
+            else -> androidx.compose.ui.graphics.Color.Gray
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopAutomaticRefresh()
     }
 }

@@ -19,12 +19,13 @@ import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
 import com.example.mangiaebasta.models.StorageManager
 import com.example.mangiaebasta.models.ProfileModel
+import com.example.mangiaebasta.models.PositionManager
 
 class MenuModel {
     val baseUrl = "https://develop.ewlab.di.unimi.it/mc/2425/menu"
-    private val defaultLocation = Location(45.4654, 9.1866)
     private val TAG = "MenuModel"
     private val profileModel = ProfileModel()
+    private val positionManager = PositionManager.getInstance()
 
     private val client = HttpClient(Android) {
         install(ContentNegotiation) {
@@ -36,11 +37,12 @@ class MenuModel {
         Log.d(TAG, "Iniziando getMenus()")
         val url = Uri.parse(baseUrl)
         val sid = profileModel.getSid()
+        val location = positionManager.getLocation()
 
         val completeUrlString = url.buildUpon()
             .appendQueryParameter("sid", sid)
-            .appendQueryParameter("lat", defaultLocation.lat.toString())
-            .appendQueryParameter("lng", defaultLocation.lng.toString())
+            .appendQueryParameter("lat", location?.latitude.toString())
+            .appendQueryParameter("lng", location?.longitude.toString())
             .build()
             .toString()
 
@@ -144,11 +146,12 @@ class MenuModel {
         Log.d(TAG, "Iniziando getMenuDetails() per menu $mid")
         val url = Uri.parse("$baseUrl/$mid")
         val sid = profileModel.getSid()
+        val location = positionManager.getLocation()
 
         val completeUrlString = url.buildUpon()
             .appendQueryParameter("sid", sid)
-            .appendQueryParameter("lat", defaultLocation.lat.toString())
-            .appendQueryParameter("lng", defaultLocation.lng.toString())
+            .appendQueryParameter("lat", location?.latitude.toString())
+            .appendQueryParameter("lng", location?.longitude.toString())
             .build()
             .toString()
 

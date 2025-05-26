@@ -19,34 +19,48 @@ import org.json.JSONObject
 
 class OrderModel {
 
+    companion object {
+        private const val TAG = "OrderModel"
+
+        // Shared Json configuration to avoid redundant creation
+        private val jsonConfig = Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            encodeDefaults = false
+        }
+    }
+
     private val client = HttpClient(Android) {
         install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-                encodeDefaults = false
-            })
+            json(jsonConfig)
         }
     }
 
     // singleton DataStoreManager
     private val dataStoreManager = DataStoreManager.getInstance()
-
-    val profileModel = ProfileModel()
-
-    companion object {
-        private const val TAG = "OrderModel"
-    }
+    private val profileModel = ProfileModel()
+    private val positionManager = PositionManager.getInstance()
 
     suspend fun order(mid: Int): Order {
         val sid = profileModel.getSid()
-        val location = Location(45.4654, 9.1866)
+
+        // Usa la posizione reale del dispositivo
+        val realLocation = positionManager.getLocation()
+        val location = if (realLocation != null) {
+            Location(realLocation.latitude, realLocation.longitude)
+        } else {
+            // Fallback alla posizione di Milano se non disponibile
+            Log.w(TAG, "Posizione reale non disponibile, uso posizione di default")
+            Location(45.4654, 9.1866)
+        }
+
         val baseUrl = "https://develop.ewlab.di.unimi.it/mc/2425/menu/$mid/buy"
         val urlBuilder = Uri.parse(baseUrl).buildUpon()
             .appendQueryParameter("mid", mid.toString())
         val completeUrlString = urlBuilder.build().toString()
 
         Log.d(TAG, "order() → endpoint: $completeUrlString")
+        Log.d(TAG, "order() → using location: lat=${location.lat}, lng=${location.lng}")
 
         val delivery = DeliveryLocationWithSid(
             sid = sid!!,
@@ -72,10 +86,7 @@ class OrderModel {
             val responseBody = response.bodyAsText()
             Log.d(TAG, "order() → response: $responseBody")
 
-            val order: Order = Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-            }.decodeFromString(Order.serializer(), responseBody)
+            val order: Order = jsonConfig.decodeFromString(Order.serializer(), responseBody)
 
             dataStoreManager.setOID(order.oid)
             Log.d(TAG, "order() → saved OID ${order.oid} to DataStore")
@@ -158,10 +169,7 @@ class OrderModel {
                 val responseBody = response.bodyAsText()
                 Log.d(TAG, "getOrderStatus() → raw response: $responseBody")
 
-                val order: Order = Json {
-                    ignoreUnknownKeys = true
-                    isLenient = true
-                }.decodeFromString(Order.serializer(), responseBody)
+                val order: Order = jsonConfig.decodeFromString(Order.serializer(), responseBody)
 
                 Log.d(TAG, "getOrderStatus() → ordine recuperato con successo, stato: ${order.status}")
                 return order
