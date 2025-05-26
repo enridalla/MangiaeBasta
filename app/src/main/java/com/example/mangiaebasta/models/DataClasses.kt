@@ -72,6 +72,7 @@ data class Order(
     val deliveryLocation: Location,
     val expectedDeliveryTimestamp: String? = null,
     val currentPosition: Location,
+    val deliveryTimestamp: String? = null
 )
 
 @Serializable

@@ -314,18 +314,18 @@ private fun MapCard(
     LaunchedEffect(orderStatus) {
         val (center, zoom) = when (orderStatus.status) {
             "ON_DELIVERY" -> {
-                val droneLat = orderStatus.currentPosition?.lat ?: 0.0
-                val droneLng = orderStatus.currentPosition?.lng ?: 0.0
+                val droneLat = orderStatus.currentPosition.lat
+                val droneLng = orderStatus.currentPosition.lng
                 Pair(droneLat, droneLng) to 14.0
             }
             "COMPLETED" -> {
-                val lat = orderStatus.deliveryLocation?.lat ?: 0.0
-                val lng = orderStatus.deliveryLocation?.lng ?: 0.0
+                val lat = orderStatus.deliveryLocation.lat
+                val lng = orderStatus.deliveryLocation.lng
                 Pair(lat, lng) to 15.0
             }
             else -> {
-                val lat = orderStatus.deliveryLocation?.lat ?: 0.0
-                val lng = orderStatus.deliveryLocation?.lng ?: 0.0
+                val lat = orderStatus.deliveryLocation.lat
+                val lng = orderStatus.deliveryLocation.lng
                 Pair(lat, lng) to 14.0
             }
         }
@@ -376,7 +376,7 @@ private fun MapCard(
             }
 
             // 🏠 Destinazione (casa)
-            orderStatus.deliveryLocation?.let { destination ->
+            orderStatus.deliveryLocation.let { destination ->
                 PointAnnotation(
                     point = Point.fromLngLat(destination.lng, destination.lat)
                 ) {
@@ -398,7 +398,7 @@ private fun MapCard(
                 }
 
                 // Linea dal drone alla destinazione
-                orderStatus.deliveryLocation?.let { destination ->
+                orderStatus.deliveryLocation.let { destination ->
                     PolylineAnnotation(
                         points = listOf(
                             Point.fromLngLat(droneLng, droneLat),
@@ -529,16 +529,17 @@ private fun OrderDetailsCard(
             OrderInfoRow(
                 icon = Icons.Default.AccessTime,
                 label = if (orderStatus.status == "COMPLETED") "Consegnato alle" else "Consegna prevista",
-                value = orderViewModel.formatDeliveryTime(orderStatus.expectedDeliveryTimestamp)
+                value = if (orderStatus.expectedDeliveryTimestamp != null) orderViewModel.formatDeliveryTime(orderStatus.expectedDeliveryTimestamp) else
+                        orderViewModel.formatDeliveryTime(orderStatus.deliveryTimestamp)
             )
 
             // Distanza drone-destinazione se in consegna
             if (orderStatus.status == "ON_DELIVERY") {
                 val distance = orderViewModel.calculateDistance(
-                    orderStatus.currentPosition?.lat ?: 0.0,
-                    orderStatus.currentPosition?.lng ?: 0.0,
-                    orderStatus.deliveryLocation?.lat ?: 0.0,
-                    orderStatus.deliveryLocation?.lng ?: 0.0
+                    orderStatus.currentPosition.lat,
+                    orderStatus.currentPosition.lng,
+                    orderStatus.deliveryLocation.lat,
+                    orderStatus.deliveryLocation.lng
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
