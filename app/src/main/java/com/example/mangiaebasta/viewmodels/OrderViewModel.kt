@@ -45,12 +45,7 @@ class OrderViewModel : ViewModel() {
     private val _isRefreshingAutomatically = MutableStateFlow(false)
     val isRefreshingAutomatically: StateFlow<Boolean> = _isRefreshingAutomatically.asStateFlow()
 
-    init {
-        loadOrderData()
-        loadUserLocation()
-    }
-
-    private fun loadUserLocation() {
+    internal fun loadUserLocation() {
         viewModelScope.launch {
             try {
                 val location = positionManager.getLocation()
@@ -66,7 +61,7 @@ class OrderViewModel : ViewModel() {
         }
     }
 
-    private fun loadOrderData() {
+    internal fun loadOrderData() {
         viewModelScope.launch {
             _isLoading.value = true
 

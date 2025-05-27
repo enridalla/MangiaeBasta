@@ -52,9 +52,9 @@ fun OrderScreen(
     val userLocation by orderViewModel.userLocation.collectAsState()
     val isRefreshingAutomatically by orderViewModel.isRefreshingAutomatically.collectAsState()
 
-    // NUOVA AGGIUNTA: Refresh automatico all'apertura della pagina
     LaunchedEffect(Unit) {
-        orderViewModel.refreshOrderData()
+        orderViewModel.loadOrderData()
+        orderViewModel.loadUserLocation()
     }
 
     if (isLoading) {

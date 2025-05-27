@@ -31,6 +31,10 @@ fun ProfileEditScreen(
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    LaunchedEffect(Unit) {
+        profileViewModel.loadProfile()
+    }
+
     // Gestione dei risultati
     LaunchedEffect(updateResult) {
         updateResult?.let { result ->

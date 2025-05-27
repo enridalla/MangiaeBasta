@@ -23,6 +23,10 @@ fun MenuListScreen(
     menuViewModel: MenuViewModel,
     onMenuSelected: (Int) -> Unit
 ) {
+    LaunchedEffect(Unit) {
+        menuViewModel.loadMenus()
+    }
+
     val menus by menuViewModel.menusUi.collectAsState()
     val isLoading by menuViewModel.isLoading.collectAsState()
 

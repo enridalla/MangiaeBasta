@@ -12,7 +12,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MenuViewModel : ViewModel() {
-
     private val menuModel = MenuModel()
     private val orderModel = OrderModel()
 
@@ -25,12 +24,10 @@ class MenuViewModel : ViewModel() {
     val selectedMenu: StateFlow<DetailedMenuItemWithImage?> = _selectedMenu
 
     // --- STATO CARICAMENTO --------------------------------------------------------------------
-    private val _isLoading = MutableStateFlow(true)
+    private val _isLoading = MutableStateFlow(false) // Cambiato da true a false
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    init {
-        loadMenus()
-    }
+    // Rimosso init { loadMenus() }
 
     /** Carica la lista dei menu */
     fun loadMenus() = viewModelScope.launch {
@@ -58,7 +55,7 @@ class MenuViewModel : ViewModel() {
         }
     }
 
-    /** Effettua l’ordine e restituisce un eventuale messaggio d’errore */
+    /** Effettua l'ordine e restituisce un eventuale messaggio d'errore */
     suspend fun orderMenu(menuId: Int): String? {
         _isLoading.value = true
         return try {
@@ -66,7 +63,7 @@ class MenuViewModel : ViewModel() {
             orderModel.saveLastOrder(_selectedMenu.value)
             null                                        // Successo
         } catch (e: Exception) {
-            // Trasforma “API Error: …” in messaggio user-friendly
+            // Trasforma "API Error: …" in messaggio user-friendly
             e.message?.replace("API Error: ", "")
                 ?: "Si è verificato un errore sconosciuto"
         } finally {
