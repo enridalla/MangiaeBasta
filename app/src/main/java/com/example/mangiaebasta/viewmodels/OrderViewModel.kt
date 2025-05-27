@@ -30,7 +30,7 @@ class OrderViewModel : ViewModel() {
     private val orderModel = OrderModel()
     private val positionManager = PositionManager.getInstance()
 
-    private val _isLoading = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _orderStatus = MutableStateFlow<Order?>(null)

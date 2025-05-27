@@ -25,9 +25,13 @@ fun MenuDetailScreen(
     navController: NavHostController,
     menuViewModel: MenuViewModel
 ) {
-    /* ---------- trigger del fetch quando cambia l’id ---------- */
+    // Stato per tracciare se è il primo caricamento
+    var isFirstLoad by remember(menuId) { mutableStateOf(true) }
+
+    /* ---------- trigger del fetch quando cambia l'id ---------- */
     LaunchedEffect(menuId) {
         menuViewModel.loadMenu(menuId)
+        isFirstLoad = false
     }
 
     val menu by menuViewModel.selectedMenu.collectAsState()
@@ -60,11 +64,16 @@ fun MenuDetailScreen(
                 .padding(padding)
         ) {
 
-            /* -- CONTENUTO: mostrato SOLO se non si sta caricando -- */
-            if (!isLoading) {
-                menu?.let {
+            when {
+                // Mostra loading solo se stiamo caricando E non abbiamo ancora dati
+                isLoading && menu == null -> {
+                    LoadingScreen()
+                }
+                // Mostra contenuto se abbiamo i dati (anche se stiamo ricaricando)
+                menu != null -> {
                     MenuDetailContent(
-                        menu = it,
+                        menu = menu!!,
+                        isRefreshing = isLoading,
                         onOrder = { id ->
                             scope.launch {
                                 val error = menuViewModel.orderMenu(id)
@@ -76,16 +85,16 @@ fun MenuDetailScreen(
                             }
                         }
                     )
-                } ?: ErrorMessage("Impossibile caricare i dettagli del menu")
-            }
-
-            if (isLoading) {
-                LoadingScreen()
+                }
+                // Mostra errore solo se non stiamo caricando e non abbiamo dati
+                // Ma NON durante il primo caricamento
+                !isLoading && !isFirstLoad -> {
+                    ErrorMessage("Impossibile caricare i dettagli del menu")
+                }
             }
         }
     }
 }
-
 
 @Composable
 private fun ErrorMessage(message: String) {
@@ -107,6 +116,7 @@ private fun ErrorMessage(message: String) {
 @Composable
 private fun MenuDetailContent(
     menu: DetailedMenuItemWithImage,
+    isRefreshing: Boolean = false,
     onOrder: (Int) -> Unit
 ) {
     val imgBytes = menu.image?.let { Base64.decode(it, Base64.DEFAULT) }
@@ -120,6 +130,14 @@ private fun MenuDetailContent(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
+        // Indicatore di refresh in alto
+        if (isRefreshing) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+
         imgBitmap?.let {
             Image(
                 bitmap = it,
@@ -157,9 +175,19 @@ private fun MenuDetailContent(
 
         Button(
             onClick = { onOrder(menu.mid) },
+            enabled = !isRefreshing,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
-        ) { Text("Ordina ora") }
+        ) {
+            if (isRefreshing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text("Ordina ora")
+            }
+        }
     }
 }
