@@ -1,9 +1,5 @@
 package com.example.mangiaebasta.components
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.RestaurantMenu
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -23,7 +19,8 @@ fun BottomNavigationBar(navController: NavHostController) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     NavigationBar(containerColor = Color.White, tonalElevation = 4.dp) {
-        listOf(Screen.MenuList, Screen.Order, Screen.ProfileInfo).forEach { screen ->
+        // Usa la funzione dinamica invece della lista hardcoded
+        Screen.getBottomNavScreens().forEach { screen ->
             NavigationBarItem(
                 icon = { Icon(screen.icon, contentDescription = screen.label) },
                 label = { Text(screen.label) },
