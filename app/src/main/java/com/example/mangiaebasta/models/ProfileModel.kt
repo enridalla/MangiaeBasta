@@ -33,6 +33,17 @@ class ProfileModel {
     }
 
     suspend fun getProfileInfo(): Profile {
+        // Prima controlla se c'è un profilo salvato nel DataStore
+        Log.d(TAG, "getProfileInfo() → Checking DataStore for cached profile")
+        val cachedProfile = dataStoreManager.getProfile()
+
+        if (cachedProfile != null) {
+            Log.d(TAG, "getProfileInfo() → Found cached profile in DataStore, returning it: $cachedProfile")
+            return cachedProfile
+        }
+
+        Log.d(TAG, "getProfileInfo() → No cached profile found, fetching from server")
+
         val uid = getUid() ?: throw Exception("UID non disponibile")
         val sid = getSid() ?: throw Exception("SID non disponibile")
         val baseUrl = "https://develop.ewlab.di.unimi.it/mc/2425/user/$uid"
@@ -58,7 +69,12 @@ class ProfileModel {
         Log.d(TAG, "getProfileInfo() → raw response body: $responseBody")
 
         val profile: Profile = response.body()
-        Log.d(TAG, "getProfileInfo() → parsed Profile: $profile")
+        Log.d(TAG, "getProfileInfo() → parsed Profile from server: $profile")
+
+        // Salva il profilo nel DataStore per uso futuro
+        Log.d(TAG, "getProfileInfo() → Saving profile to DataStore for caching")
+        dataStoreManager.saveProfile(profile)
+
         return profile
     }
 
@@ -187,16 +203,61 @@ class ProfileModel {
         Log.d(TAG, "updateUser() → HTTP ${response.status.value}")
         Log.d(TAG, "updateUser() → raw response body: $responseBody")
         Log.d(TAG, "updateUser() → update successful")
+
+        // Aggiorna il profilo nel DataStore dopo l'aggiornamento riuscito
+        Log.d(TAG, "updateUser() → Updating cached profile in DataStore")
+        dataStoreManager.saveProfile(profile)
+        Log.d(TAG, "updateUser() → Profile cache updated successfully")
     }
 
-    // Metodo per validare se la sessione è ancora valida
-    suspend fun isSessionValid(): Boolean {
-        val sid = dataStoreManager.getSid()
-        val uid = dataStoreManager.getUid()
+    /**
+     * Forza il refresh del profilo dal server, bypassa la cache
+     */
+    suspend fun refreshProfileFromServer(): Profile {
+        Log.d(TAG, "refreshProfileFromServer() → Clearing cached profile and fetching fresh data")
 
-        return !sid.isNullOrBlank() &&
-                sid.length >= 64 &&
-                uid != null &&
-                uid > 0
+        // Pulisci la cache del profilo
+        dataStoreManager.clearProfile()
+
+        val uid = getUid() ?: throw Exception("UID non disponibile")
+        val sid = getSid() ?: throw Exception("SID non disponibile")
+        val baseUrl = "https://develop.ewlab.di.unimi.it/mc/2425/user/$uid"
+        val url = Uri.parse(baseUrl)
+
+        val completeUrlString = url.buildUpon()
+            .appendQueryParameter("sid", sid)
+            .appendQueryParameter("uid", uid.toString())
+            .build()
+            .toString()
+
+        Log.d(TAG, "refreshProfileFromServer() → requesting URL: $completeUrlString")
+
+        val response = client.get(completeUrlString)
+        if (!response.status.isSuccess()) {
+            val errText = response.bodyAsText()
+            Log.e(TAG, "refreshProfileFromServer() → HTTP ${response.status.value}: $errText")
+            throw Exception("Errore ${response.status.value}: $errText")
+        }
+
+        val responseBody = response.bodyAsText()
+        Log.d(TAG, "refreshProfileFromServer() → HTTP ${response.status.value}")
+        Log.d(TAG, "refreshProfileFromServer() → raw response body: $responseBody")
+
+        val profile: Profile = response.body()
+        Log.d(TAG, "refreshProfileFromServer() → parsed fresh Profile from server: $profile")
+
+        // Salva il nuovo profilo nel DataStore
+        Log.d(TAG, "refreshProfileFromServer() → Saving fresh profile to DataStore")
+        dataStoreManager.saveProfile(profile)
+
+        return profile
+    }
+
+    /**
+     * Ottiene il profilo dalla cache locale senza fare richieste al server
+     */
+    suspend fun getCachedProfile(): Profile? {
+        Log.d(TAG, "getCachedProfile() → Getting profile from DataStore cache only")
+        return dataStoreManager.getProfile()
     }
 }

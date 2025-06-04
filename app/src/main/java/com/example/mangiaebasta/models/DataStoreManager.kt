@@ -54,6 +54,15 @@ class DataStoreManager private constructor(private val applicationContext: Conte
     private val LAST_ORDER_KEY = stringPreferencesKey("last_order")
     private val OID_KEY = intPreferencesKey("oid")
 
+    // Profile keys
+    private val PROFILE_FIRST_NAME_KEY = stringPreferencesKey("profile_first_name")
+    private val PROFILE_LAST_NAME_KEY = stringPreferencesKey("profile_last_name")
+    private val PROFILE_CARD_FULL_NAME_KEY = stringPreferencesKey("profile_card_full_name")
+    private val PROFILE_CARD_NUMBER_KEY = stringPreferencesKey("profile_card_number")
+    private val PROFILE_CARD_EXPIRE_MONTH_KEY = intPreferencesKey("profile_card_expire_month")
+    private val PROFILE_CARD_EXPIRE_YEAR_KEY = intPreferencesKey("profile_card_expire_year")
+    private val PROFILE_CARD_CVV_KEY = intPreferencesKey("profile_card_cvv")
+
     // SID
     fun setSid(sid: String?) {
         if (sid == null) return
@@ -146,5 +155,73 @@ class DataStoreManager private constructor(private val applicationContext: Conte
             prefs[LAST_ROUTE_KEY] = route
         }
         Log.d(TAG, "Last route saved successfully.")
+    }
+
+    // Profile methods
+    suspend fun saveProfile(profile: Profile) {
+        Log.d(TAG, "Saving profile to DataStore: $profile")
+        dataStore.edit { preferences ->
+            profile.firstName?.let { preferences[PROFILE_FIRST_NAME_KEY] = it }
+            profile.lastName?.let { preferences[PROFILE_LAST_NAME_KEY] = it }
+            profile.cardFullName?.let { preferences[PROFILE_CARD_FULL_NAME_KEY] = it }
+            profile.cardNumber?.let { preferences[PROFILE_CARD_NUMBER_KEY] = it.toString() }
+            profile.cardExpireMonth?.let { preferences[PROFILE_CARD_EXPIRE_MONTH_KEY] = it }
+            profile.cardExpireYear?.let { preferences[PROFILE_CARD_EXPIRE_YEAR_KEY] = it }
+            profile.cardCVV?.let { preferences[PROFILE_CARD_CVV_KEY] = it }
+        }
+        Log.d(TAG, "Profile saved to DataStore successfully")
+    }
+
+    suspend fun getProfile(): Profile? {
+        Log.d(TAG, "Getting profile from DataStore")
+        return withContext(Dispatchers.IO) {
+            val preferences = dataStore.data.first()
+
+            val firstName = preferences[PROFILE_FIRST_NAME_KEY]
+            val lastName = preferences[PROFILE_LAST_NAME_KEY]
+            val cardFullName = preferences[PROFILE_CARD_FULL_NAME_KEY]
+            val cardNumber = preferences[PROFILE_CARD_NUMBER_KEY]?.toLongOrNull()
+            val cardExpireMonth = preferences[PROFILE_CARD_EXPIRE_MONTH_KEY]
+            val cardExpireYear = preferences[PROFILE_CARD_EXPIRE_YEAR_KEY]
+            val cardCVV = preferences[PROFILE_CARD_CVV_KEY]
+
+            // Se almeno un campo del profilo è presente, restituisce il profilo
+            if (firstName != null || lastName != null || cardFullName != null ||
+                cardNumber != null || cardExpireMonth != null || cardExpireYear != null || cardCVV != null) {
+
+                val uid = getUid()
+
+                val profile = Profile(
+                    firstName = firstName,
+                    lastName = lastName,
+                    cardFullName = cardFullName,
+                    cardNumber = cardNumber,
+                    cardExpireMonth = cardExpireMonth,
+                    cardExpireYear = cardExpireYear,
+                    cardCVV = cardCVV,
+                    uid = uid!!
+                )
+
+                Log.d(TAG, "Profile retrieved from DataStore: $profile")
+                return@withContext profile
+            } else {
+                Log.d(TAG, "No profile found in DataStore")
+                return@withContext null
+            }
+        }
+    }
+
+    suspend fun clearProfile() {
+        Log.d(TAG, "Clearing profile from DataStore")
+        dataStore.edit { preferences ->
+            preferences.remove(PROFILE_FIRST_NAME_KEY)
+            preferences.remove(PROFILE_LAST_NAME_KEY)
+            preferences.remove(PROFILE_CARD_FULL_NAME_KEY)
+            preferences.remove(PROFILE_CARD_NUMBER_KEY)
+            preferences.remove(PROFILE_CARD_EXPIRE_MONTH_KEY)
+            preferences.remove(PROFILE_CARD_EXPIRE_YEAR_KEY)
+            preferences.remove(PROFILE_CARD_CVV_KEY)
+        }
+        Log.d(TAG, "Profile cleared from DataStore successfully")
     }
 }
