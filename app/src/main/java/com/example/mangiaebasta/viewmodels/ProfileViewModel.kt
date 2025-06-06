@@ -125,7 +125,7 @@ class ProfileViewModel : ViewModel() {
 
         // Validazione dati carta
         if (profile.cardFullName!!.length > 31) {
-            return "Il nome e il cognome insieme non possono superare i 31 caratteri"
+            return "L'intestatario della carta non può superare i 31 caratteri"
         }
         if (profile.cardFullName.length < 4) {
             return "L'intestatario della carta deve contenere almeno 4 caratteri"
