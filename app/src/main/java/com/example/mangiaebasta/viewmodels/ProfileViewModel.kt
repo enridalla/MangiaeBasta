@@ -106,21 +106,28 @@ class ProfileViewModel : ViewModel() {
         if (profile.firstName.isNullOrBlank()) {
             return "Il nome è obbligatorio"
         }
-        if (profile.firstName!!.length < 2) {
+        if (profile.firstName.length < 2) {
             return "Il nome deve contenere almeno 2 caratteri"
+        }
+        if (profile.firstName.length > 15) {
+            return "Il nome non può superare i 15 caratteri"
         }
         if (profile.lastName.isNullOrBlank()) {
             return "Il cognome è obbligatorio"
         }
-        if (profile.lastName!!.length < 2) {
+        if (profile.lastName.length < 2) {
             return "Il cognome deve contenere almeno 2 caratteri"
         }
+        if (profile.lastName.length > 15) {
+            return "Il nome non può superare i 15 caratteri"
+        }
+
 
         // Validazione dati carta
-        if (profile.cardFullName.isNullOrBlank()) {
-            return "L'intestatario della carta è obbligatorio"
+        if (profile.cardFullName!!.length > 31) {
+            return "Il nome e il cognome insieme non possono superare i 31 caratteri"
         }
-        if (profile.cardFullName!!.length < 4) {
+        if (profile.cardFullName.length < 4) {
             return "L'intestatario della carta deve contenere almeno 4 caratteri"
         }
 
