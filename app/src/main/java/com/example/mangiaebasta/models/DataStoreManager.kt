@@ -174,40 +174,38 @@ class DataStoreManager private constructor(private val applicationContext: Conte
 
     suspend fun getProfile(): Profile? {
         Log.d(TAG, "Getting profile from DataStore")
-        return withContext(Dispatchers.IO) {
-            val preferences = dataStore.data.first()
+        val preferences = dataStore.data.first()
 
-            val firstName = preferences[PROFILE_FIRST_NAME_KEY]
-            val lastName = preferences[PROFILE_LAST_NAME_KEY]
-            val cardFullName = preferences[PROFILE_CARD_FULL_NAME_KEY]
-            val cardNumber = preferences[PROFILE_CARD_NUMBER_KEY]?.toLongOrNull()
-            val cardExpireMonth = preferences[PROFILE_CARD_EXPIRE_MONTH_KEY]
-            val cardExpireYear = preferences[PROFILE_CARD_EXPIRE_YEAR_KEY]
-            val cardCVV = preferences[PROFILE_CARD_CVV_KEY]
+        val firstName = preferences[PROFILE_FIRST_NAME_KEY]
+        val lastName = preferences[PROFILE_LAST_NAME_KEY]
+        val cardFullName = preferences[PROFILE_CARD_FULL_NAME_KEY]
+        val cardNumber = preferences[PROFILE_CARD_NUMBER_KEY]?.toLongOrNull()
+        val cardExpireMonth = preferences[PROFILE_CARD_EXPIRE_MONTH_KEY]
+        val cardExpireYear = preferences[PROFILE_CARD_EXPIRE_YEAR_KEY]
+        val cardCVV = preferences[PROFILE_CARD_CVV_KEY]
 
-            // Se almeno un campo del profilo è presente, restituisce il profilo
-            if (firstName != null || lastName != null || cardFullName != null ||
-                cardNumber != null || cardExpireMonth != null || cardExpireYear != null || cardCVV != null) {
+        // Se almeno un campo del profilo è presente, restituisce il profilo
+        if (firstName != null || lastName != null || cardFullName != null ||
+            cardNumber != null || cardExpireMonth != null || cardExpireYear != null || cardCVV != null) {
 
-                val uid = getUid()
+            val uid = getUid()
 
-                val profile = Profile(
-                    firstName = firstName,
-                    lastName = lastName,
-                    cardFullName = cardFullName,
-                    cardNumber = cardNumber,
-                    cardExpireMonth = cardExpireMonth,
-                    cardExpireYear = cardExpireYear,
-                    cardCVV = cardCVV,
-                    uid = uid!!
-                )
+            val profile = Profile(
+                firstName = firstName,
+                lastName = lastName,
+                cardFullName = cardFullName,
+                cardNumber = cardNumber,
+                cardExpireMonth = cardExpireMonth,
+                cardExpireYear = cardExpireYear,
+                cardCVV = cardCVV,
+                uid = uid!!
+            )
 
-                Log.d(TAG, "Profile retrieved from DataStore: $profile")
-                return@withContext profile
-            } else {
-                Log.d(TAG, "No profile found in DataStore")
-                return@withContext null
-            }
+            Log.d(TAG, "Profile retrieved from DataStore: $profile")
+            return profile
+        } else {
+            Log.d(TAG, "No profile found in DataStore")
+            return null
         }
     }
 
