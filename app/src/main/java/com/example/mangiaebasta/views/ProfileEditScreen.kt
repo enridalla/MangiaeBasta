@@ -18,6 +18,7 @@ import androidx.navigation.NavController
 import com.example.mangiaebasta.models.Profile
 import com.example.mangiaebasta.viewmodels.ProfileViewModel
 import com.example.mangiaebasta.Screen
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileEditScreen(
@@ -26,62 +27,23 @@ fun ProfileEditScreen(
 ) {
     val profile by profileViewModel.profile.collectAsState(initial = null)
     val isLoading by profileViewModel.isLoading.collectAsState()
-    val updateResult by profileViewModel.updateResult.collectAsState()
-    val validationError by profileViewModel.validationError.collectAsState()
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    var errorDialogMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         profileViewModel.loadProfile()
     }
 
-    // Gestione dei risultati
-    LaunchedEffect(updateResult) {
-        updateResult?.let { result ->
-            when (result) {
-                is ProfileViewModel.UpdateResult.Success -> {
-                    snackbarHostState.showSnackbar(
-                        message = "Profilo aggiornato con successo!",
-                        duration = SnackbarDuration.Short
-                    )
-                    // Naviga dopo aver mostrato lo snackbar
-                    kotlinx.coroutines.delay(1500) // Aspetta che lo snackbar sia visibile
-                    profileViewModel.clearUpdateResult()
-                    navController.navigate(Screen.ProfileInfo.route) {
-                        popUpTo(Screen.ProfileInfo.route) { inclusive = true }
-                    }
-                }
-                is ProfileViewModel.UpdateResult.Error -> {
-                    // L'alert di errore sarà mostrato come AlertDialog
-                }
-            }
-        }
-    }
-
-    // Alert di errore per l'aggiornamento
-    updateResult?.let { result ->
-        if (result is ProfileViewModel.UpdateResult.Error) {
-            AlertDialog(
-                onDismissRequest = { profileViewModel.clearUpdateResult() },
-                title = { Text("Errore") },
-                text = { Text(result.message) },
-                confirmButton = {
-                    TextButton(onClick = { profileViewModel.clearUpdateResult() }) {
-                        Text("OK")
-                    }
-                }
-            )
-        }
-    }
-
-    // Alert di errore per la validazione
-    if (validationError != null) {
+    // Dialog per errori
+    errorDialogMessage?.let { message ->
         AlertDialog(
-            onDismissRequest = { profileViewModel.clearValidationError() },
-            title = { Text("Dati non validi") },
-            text = { Text(validationError!!) },
+            onDismissRequest = { errorDialogMessage = null },
+            title = { Text("Errore") },
+            text = { Text(message) },
             confirmButton = {
-                TextButton(onClick = { profileViewModel.clearValidationError() }) {
+                TextButton(onClick = { errorDialogMessage = null }) {
                     Text("OK")
                 }
             }
@@ -114,7 +76,7 @@ fun ProfileEditScreen(
                 var expireYear by remember { mutableStateOf(currentProfile.cardExpireYear?.toString() ?: "") }
                 var cvv by remember { mutableStateOf(currentProfile.cardCVV?.toString() ?: "") }
 
-                // Stati per gli errori dei campi
+                // Stati per gli errori dei campi (validazione locale)
                 var firstNameError by remember { mutableStateOf(false) }
                 var lastNameError by remember { mutableStateOf(false) }
                 var cardFullNameError by remember { mutableStateOf(false) }
@@ -288,17 +250,28 @@ fun ProfileEditScreen(
                             )
 
                             // Aggiorna il profilo
-                            profileViewModel.updateProfile(updatedProfile)
+                            coroutineScope.launch {
+                                when (val result = profileViewModel.updateProfile(updatedProfile)) {
+                                    is ProfileViewModel.UpdateResult.Success -> {
+                                        snackbarHostState.showSnackbar(
+                                            message = "Profilo aggiornato con successo!",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                    is ProfileViewModel.UpdateResult.Error -> {
+                                        errorDialogMessage = result.message
+                                    }
+                                    is ProfileViewModel.UpdateResult.ValidationError -> {
+                                        errorDialogMessage = result.message
+                                    }
+                                }
+                            }
                         },
                         enabled = !isLoading,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Spacer(Modifier.width(8.dp))
+                            LoadingScreen()
                         }
                         Text(if (isLoading) "Salvando..." else "Salva")
                     }

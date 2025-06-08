@@ -16,8 +16,8 @@ class MenuViewModel : ViewModel() {
     private val orderModel = OrderModel()
 
     // --- LISTA MENU ---------------------------------------------------------------------------
-    private val _menusUi = MutableStateFlow<List<MenuItemWithImage>>(emptyList())
-    val menusUi: StateFlow<List<MenuItemWithImage>> = _menusUi
+    private val _menus = MutableStateFlow<List<MenuItemWithImage>>(emptyList())
+    val menusUi: StateFlow<List<MenuItemWithImage>> = _menus
 
     // --- DETTAGLIO ----------------------------------------------------------------------------
     private val _selectedMenu = MutableStateFlow<DetailedMenuItemWithImage?>(null)
@@ -34,9 +34,9 @@ class MenuViewModel : ViewModel() {
         _isLoading.value = true
         try {
             // fetch + immagini in parallelo (vedi MenuModel)
-            _menusUi.value = menuModel.getMenus()
+            _menus.value = menuModel.getMenus()
         } catch (_: Exception) {
-            _menusUi.value = emptyList()
+            _menus.value = emptyList()
         } finally {
             _isLoading.value = false
         }

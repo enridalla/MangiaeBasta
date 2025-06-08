@@ -23,18 +23,6 @@ class ProfileViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    // Nuovi stati per la gestione degli errori e successo
-    private val _updateResult = MutableStateFlow<UpdateResult?>(null)
-    val updateResult: StateFlow<UpdateResult?> = _updateResult
-
-    private val _validationError = MutableStateFlow<String?>(null)
-    val validationError: StateFlow<String?> = _validationError
-
-    sealed class UpdateResult {
-        object Success : UpdateResult()
-        data class Error(val message: String) : UpdateResult()
-    }
-
     fun loadProfile() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -60,45 +48,38 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    fun updateProfile(updatedProfile: Profile) {
+    suspend fun updateProfile(updatedProfile: Profile): UpdateResult {
         // Prima valida i dati
         val validationResult = validateProfile(updatedProfile)
         if (validationResult != null) {
-            _validationError.value = validationResult
-            return
+            return UpdateResult.ValidationError(validationResult)
         }
 
-        // Reset degli stati precedenti
-        _validationError.value = null
-        _updateResult.value = null
-
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                profileModel.updateUser(updatedProfile)
-                _profile.value = updatedProfile
-                checkProfileCompleteness(updatedProfile)
-                _updateResult.value = UpdateResult.Success
-            } catch (e: Exception) {
-                val errorMessage = when {
-                    e.message?.contains("204") == true -> "Profilo aggiornato con successo!"
-                    e.message?.contains("401") == true -> "La tua sessione è scaduta. Riapri l'app per continuare."
-                    e.message?.contains("404") == true -> "Il tuo profilo non è stato trovato. Riapri l'app per continuare."
-                    e.message?.contains("422") == true -> "I dati che hai inserito non sono corretti."
-                    e.message?.contains("network", ignoreCase = true) == true -> "Errore di connessione. Controlla la tua connessione internet e riprova."
-                    else -> "Si è verificato un errore durante l'aggiornamento. Riprova più tardi."
-                }
-
-                // Se è 204, è in realtà un successo
-                if (e.message?.contains("204") == true) {
-                    _updateResult.value = UpdateResult.Success
-                } else {
-                    _updateResult.value = UpdateResult.Error(errorMessage)
-                }
-            } finally {
-                _isLoading.value = false
+        _isLoading.value = true
+        return try {
+            profileModel.updateUser(updatedProfile)
+            _profile.value = updatedProfile
+            checkProfileCompleteness(updatedProfile)
+            UpdateResult.Success
+        } catch (e: Exception) {
+            val errorMessage = when {
+                e.message?.contains("204") == true -> return UpdateResult.Success // 204 è successo
+                e.message?.contains("401") == true -> "La tua sessione è scaduta. Riapri l'app per continuare."
+                e.message?.contains("404") == true -> "Il tuo profilo non è stato trovato. Riapri l'app per continuare."
+                e.message?.contains("422") == true -> "I dati che hai inserito non sono corretti."
+                e.message?.contains("network", ignoreCase = true) == true -> "Errore di connessione. Controlla la tua connessione internet e riprova."
+                else -> "Si è verificato un errore durante l'aggiornamento. Riprova più tardi."
             }
+            UpdateResult.Error(errorMessage)
+        } finally {
+            _isLoading.value = false
         }
+    }
+
+    sealed class UpdateResult {
+        object Success : UpdateResult()
+        data class Error(val message: String) : UpdateResult()
+        data class ValidationError(val message: String) : UpdateResult()
     }
 
     private fun validateProfile(profile: Profile): String? {
@@ -121,7 +102,6 @@ class ProfileViewModel : ViewModel() {
         if (profile.lastName.length > 15) {
             return "Il nome non può superare i 15 caratteri"
         }
-
 
         // Validazione dati carta
         if (profile.cardFullName!!.length > 31) {
@@ -179,14 +159,5 @@ class ProfileViewModel : ViewModel() {
                         profile?.cardExpireYear == null &&
                         profile?.cardCVV == null
                 )
-    }
-
-    // Metodi per resettare gli stati
-    fun clearUpdateResult() {
-        _updateResult.value = null
-    }
-
-    fun clearValidationError() {
-        _validationError.value = null
     }
 }
